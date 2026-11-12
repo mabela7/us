@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#09070f">
+<title>Us</title>
+<style>
+/* ===== 1. COLORS & SIZES: change these first ===== */
+:root{
+  --bg:#0b0811;       /* page background */
+  --card:#17121f;     /* cards, bars */
+  --card2:#221b2d;    /* inputs, buttons */
+  --line:#ffffff12;   /* thin borders */
+  --txt:#f5f0f8;      /* main text */
+  --mut:#8c8296;      /* faded text */
+  --acc:#7289da;      /* main accent */
+  --acc2:#5b6eae;     /* darker accent */
+  --bad:#ff6b81;      /* red: badges, likes, delete */
+  --ok:#2ecc71;       /* green: answer call */
+  --radius:16px;
+  --bubble:#1d1628;                                      /* received bubble */
+  --me-bubble:linear-gradient(135deg,#5b6eae,#7289da);   /* sent bubble */
+}
+/* ===== 2. BASE ===== */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+[hidden]{display:none!important}
+.mut{color:var(--mut)} .small{font-size:13px} .center{text-align:center}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row{display:flex;align-items:center;gap:12px} .grow{flex:1;min-width:0}
+.hint{text-align:center;color:var(--mut);padding:30px}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* ===== 3. LAYOUT: top bar, scroll area, bottom nav ===== */
+#app{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.top{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:58px;border-bottom:1px solid var(--line)}
+.top h1{flex:1;margin:0;font-size:17px;min-width:0}
+.view{flex:1;overflow:auto;min-height:0}
+.pad{max-width:640px;margin:0 auto;padding:16px}
+.nav{display:flex;background:#08060d;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;display:grid;justify-items:center;gap:3px;padding:9px 0 7px;font-size:11px;color:var(--mut);position:relative}
+.nav .on{color:var(--acc)}
+.badge{position:absolute;top:4px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;display:grid;place-items:center}
+/* ===== 4. BUTTONS & INPUTS ===== */
+.btn{background:linear-gradient(120deg,var(--acc2),var(--acc));color:#fff;font-weight:650;border-radius:14px;padding:12px 18px}
+.btn.soft{background:var(--card2)} .btn.full{width:100%} .btn.sm{padding:8px 14px;font-size:14px}
+.ib{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--card2);flex:none}
+.ib.acc{background:var(--acc)}
+.ib.recording{background:var(--bad);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{transform:scale(1.12)}}
+input,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:13px 14px;outline:none;resize:none}
+input:focus,textarea:focus{border-color:var(--acc2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+/* ===== 5. AVATARS (size classes: sm, big) ===== */
+.av{--h:220;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;overflow:hidden;font-weight:650;background:hsl(var(--h) 45% 32%);color:hsl(var(--h) 80% 90%)}
+.av.sm{width:32px;height:32px;font-size:14px} .av.big{width:92px;height:92px;font-size:38px}
+.av img{width:100%;height:100%;object-fit:cover}
+/* ===== 6. CHAT: rows, bubbles, media, replies ===== */
+.msgs{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.mr{display:flex;flex-direction:column;align-items:flex-start;touch-action:pan-y;transition:transform .12s}
+.mr.me{align-items:flex-end}
+.b{width:fit-content;max-width:min(86%,340px);padding:9px 13px;background:var(--bubble);border-radius:18px 18px 18px 6px;white-space:pre-wrap;overflow-wrap:anywhere;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.b img{-webkit-user-drag:none}
+.b.me{background:var(--me-bubble);color:#fff;border-radius:18px 18px 6px 18px}
+.b.hl{outline:2px solid var(--acc)}
+.b.media{background:none;padding:0;border-radius:0}  /* files with no text: no bubble */
+.b.media .fc{background:var(--card2)}
+.mt{font-size:10.5px;color:var(--mut);margin-top:3px;padding:0 2px}
+.pic{display:block;max-width:100%;max-height:360px;border-radius:14px;background:var(--card2)}
+/* video player: no browser controls, only a thin seek line */
+.vp{position:relative;display:inline-block;line-height:0;border-radius:14px;overflow:hidden;background:#000;user-select:none;-webkit-user-select:none}
+.vp video{display:block;width:auto;height:auto;max-width:min(86vw,340px);max-height:360px}
+.vp.big{border-radius:8px} .vp.big video{max-width:100vw;max-height:calc(100dvh - 140px)}
+.vpplay{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;transition:opacity .15s}
+.vpplay span{width:54px;height:54px;border-radius:50%;background:#0009;color:#fff;display:grid;place-items:center;font-size:22px;padding-left:4px}
+.vp:not(.paused) .vpplay{opacity:0}
+.vpbar{position:absolute;left:0;right:0;bottom:0;height:26px;display:flex;align-items:flex-end;touch-action:none}
+.vptrack{width:100%;height:3px;background:#ffffff45} .vp.drag .vptrack{height:8px}
+.vpfill{height:100%;width:0;background:var(--acc)}
+.b audio{width:230px;max-width:100%;height:38px;display:block;filter:invert(.9) hue-rotate(190deg)}
+.fc{display:flex;gap:8px;align-items:center;padding:9px;background:#ffffff12;border-radius:12px;cursor:pointer}
+.rq{display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;margin-bottom:6px;background:#00000030;border-left:3px solid var(--acc);border-radius:6px;font-size:12px;cursor:pointer;overflow:hidden}
+.rqt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rth{width:38px;height:38px;border-radius:8px;object-fit:cover;flex:none;background:#000;display:block}  /* mini picture / video frame in replies */
+.rth.ico{display:grid;place-items:center;background:var(--card2);font-size:18px}
+.rp{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--card);border-top:1px solid var(--line);border-left:3px solid var(--acc);font-size:13px}
+.composer{display:flex;gap:8px;align-items:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.composer input{border-radius:22px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.pip{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:none}
+/* ===== 7. POP-UPS: viewer, long-press menu, delete box, call ===== */
+.viewer{position:fixed;inset:0;z-index:100;background:#08070cf5;display:none;flex-direction:column;align-items:center;justify-content:center;padding:64px 12px 20px}
+.viewer.show{display:flex}
+#vc{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+#vc img,#vc video{max-width:100%;max-height:100%;border-radius:8px}
+#vc iframe{width:100%;height:100%;border:0;border-radius:8px;background:#fff}
+#vc pre{width:100%;max-width:600px;height:100%;overflow:auto;margin:0;padding:16px;background:var(--card);border-radius:12px;white-space:pre-wrap;font-size:13px}
+.viewer .x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px}
+.viewer .dl{position:absolute;top:calc(10px + env(safe-area-inset-top));left:14px}
+.ov{position:fixed;inset:0;z-index:110;display:none}.ov.show{display:block}
+.menu{position:fixed;z-index:120;display:none;background:#251d30;border:1px solid #ffffff22;border-radius:16px;padding:6px;min-width:160px;box-shadow:0 10px 40px #0009}
+.menu.show{display:block}
+.menu button{display:block;width:100%;padding:11px 13px;border-radius:10px;text-align:left}
+.menu button:active{background:#ffffff15} .menu .del{color:var(--bad)}
+.modal{position:fixed;inset:0;z-index:200;background:#00000080;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal .box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 20px;max-width:340px;width:100%;text-align:center}
+.modal h2{margin:10px 0 6px;font-size:20px} .modal p{color:var(--mut);margin:0 0 18px}
+.btns{display:flex;gap:10px}.btns button{flex:1;padding:12px;border-radius:14px;font-weight:650;color:#fff}
+.no{background:var(--card2)} .red{background:var(--bad)} .green{background:var(--ok)}
+#grid{display:none;gap:10px;margin-bottom:16px}
+#grid video{width:100%;height:180px;object-fit:cover;background:#000;border-radius:14px}
+.thread{position:fixed;inset:0;z-index:90;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.thread.show{display:flex}
+.cm{margin-top:12px;padding-left:10px;border-left:2px solid var(--line)}
+.cm button{color:var(--mut);padding:2px 0;margin-right:10px}
+.pk{flex:1;font-size:12px;color:var(--mut)}
+.pk input{height:38px;padding:2px;margin-top:4px;border-radius:10px}
+.b{position:relative}
+.msgs{overflow-x:hidden}
+.stk{position:absolute;pointer-events:none;max-width:none;z-index:2}
+.pv .stk{pointer-events:auto;cursor:grab;touch-action:none}
+/* ===== 8. FEED, LOGIN, TOAST ===== */
+.act{display:flex;gap:8px}
+.act button{display:flex;gap:6px;align-items:center;margin-top:10px;padding:6px 12px;border-radius:18px;background:var(--card2);color:var(--mut)}
+.act button.on{color:var(--bad)} .act button.on svg{fill:var(--bad)}
+.auth{max-width:420px;margin:auto;padding:8vh 22px}
+.logo{font-size:46px;font-weight:700;letter-spacing:-2px} .logo b{color:var(--acc)}
+.seg{display:flex;background:var(--card2);border-radius:14px;padding:4px;margin:16px 0 10px}
+.seg button{flex:1;padding:10px;border-radius:11px;color:var(--mut)} .seg .on{background:var(--bg);color:var(--txt)}
+.auth input{margin-bottom:10px} .err{color:var(--bad);min-height:20px;font-size:14px}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#2b2433;padding:11px 16px;border-radius:14px;opacity:0;pointer-events:none;transition:.25s;z-index:300;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<!-- full-screen media viewer -->
+<div class="viewer" id="viewer"><button class="btn sm dl" data-act="dl">Download</button><button class="ib x" data-act="closeview">✕</button><div id="vc"></div></div>
+<!-- discussion thread -->
+<div class="thread" id="th"></div>
+<!-- long-press menu -->
+<div class="ov" id="ov" data-act="closemenu"></div>
+<div class="menu" id="menu"><button data-act="reply">↩ Reply</button><button data-act="copy">📋 Copy</button><button data-act="dl" id="mdl">⬇ Download</button><button class="del" data-act="del" id="mdel">⌫ Delete</button></div>
+<!-- delete box -->
+<div class="modal" id="dm"><div class="box"><h2 id="dh">Delete for both?</h2><p id="dp">This can't be undone.</p><div class="btns"><button class="no" data-act="dno">No</button><button class="red" data-act="dyes">Yes</button></div></div></div>
+<!-- call box -->
+<div class="modal" id="cm" style="z-index:250;background:#08070cf8"><div class="box"><div id="cav"></div><h2 id="ct">Call</h2><p id="cs"></p>
+  <div id="grid"><video id="rv" autoplay playsinline></video><video id="lv" autoplay playsinline muted></video></div>
+  <div class="btns" id="cin"><button class="red" data-act="cdecline">Decline</button><button class="green" data-act="canswer">Answer</button></div>
+  <div class="btns" id="cact"><button class="red" data-act="cend">End call</button></div></div></div>
+
+<script type="module">
+/* ===== CONFIG ===== */
+const CONFIG={
+  firebase:{apiKey:"AIzaSyAi27biKcUGvCB4kXsXEdgeq85JLBb7a_Y",authDomain:"library-a60e3.firebaseapp.com",databaseURL:"https://library-a60e3-default-rtdb.firebaseio.com",projectId:"library-a60e3",storageBucket:"library-a60e3.firebasestorage.app",messagingSenderId:"933820691428",appId:"1:933820691428:web:25dcddcfc078ac910acdf1"},
+  cloudinary:{cloudName:"dwf9uonlj",uploadPreset:"our_chat"},
+  ice:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},{urls:["turn:openrelay.metered.ca:80","turn:openrelay.metered.ca:443?transport=tcp"],username:"openrelayproject",credential:"openrelayproject"}]
+};
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,updateProfile} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getDatabase,ref,set,get,push,update,remove,onValue,onChildAdded,query,limitToLast} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+const fb=initializeApp(CONFIG.firebase),auth=getAuth(fb),db=getDatabase(fb);
+
+/* ===== HELPERS ===== */
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const IC={chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',heart:'<path d="M12 21s-7-4.4-9.3-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.3 12C19 16.6 12 21 12 21z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',clip:'<path d="M21 12l-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/>',back:'<path d="M15 5l-7 7 7 7"/>',file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',vid:'<rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10l6-3v10l-6-3z"/>'};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24">${IC[n]}</svg>`;
+const hue=n=>{let h=0;for(const c of String(n||"?"))h=(h*31+c.codePointAt(0))%360;return h};
+const fmtT=t=>new Date(t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+const when=t=>{const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?fmtT(t):d.toLocaleDateString([],{month:"short",day:"numeric"})+", "+fmtT(t)};
+const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.k);toast.k=setTimeout(()=>t.classList.remove("show"),2500)};
+const nm=u=>S.users[u]?.name||"Someone";
+const av=(u,c="")=>{const p=S.users[u]||{};return p.photo?`<span class="av ${c}"><img src="${esc(p.photo)}" alt=""></span>`:`<span class="av ${c}" style="--h:${hue(p.name)}">${esc((p.name||"?")[0].toUpperCase())}</span>`};
+const cidOf=(a,b)=>[a,b].sort().join("_");
+const kindOf=m=>{if(!m.url)return"msg";const t=m.mime||"";return t.startsWith("image")||m.type==="image"?"image":t.startsWith("video")||m.type==="video"?"video":t.startsWith("audio")?"audio":t==="application/pdf"?"pdf":t.startsWith("text")?"txt":"file"};
+async function upload(file){
+  const f=new FormData();f.append("file",file);f.append("upload_preset",CONFIG.cloudinary.uploadPreset);
+  const r=await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudinary.cloudName}/auto/upload`,{method:"POST",body:f}),j=await r.json();
+  if(!j.secure_url)throw new Error(j.error?.message||"Upload failed");
+  return {url:j.secure_url,type:j.resource_type,mime:file.type||"",name:file.name};
+}
+async function download(m){
+  try{const b=await (await fetch(m.url)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=m.name||"file";a.click()}
+  catch{window.open(m.url,"_blank")}
+}
+
+/* ===== STATE: S.chat = uid of open chat, S.page = chats | feed | me, S.reply = message being replied to ===== */
+const S={me:null,mode:"in",page:"chats",chat:null,q:"",users:{},chats:{},reads:{},posts:[],likes:{},msgs:[],pf:null,reply:null,menu:null,inc:null,mom:{},th:null,cr:null,pdel:null,set:{},shares:{}};
+const isUnread=(c,v)=>v.by!==S.me.uid&&v.t>(S.reads[c]||0);
+const msgOf=id=>S.msgs.find(m=>m.id===id)||allMoments().find(m=>m.id===id);
+
+/* ===== LIVE DATA ===== */
+let offs=[],offMsgs=()=>{},momOffs={};
+function syncMoms(){Object.keys(S.chats).forEach(c=>{if(!momOffs[c])momOffs[c]=onValue(ref(db,"moments/"+c),s=>{S.mom[c]=s.val()||{};fill()})})}
+const watch=(path,fn,q)=>{const r=ref(db,path);offs.push(onValue(q?q(r):r,s=>{fn(s.val()||{});fill()}))};
+onAuthStateChanged(auth,u=>{
+  offs.forEach(f=>f());offs=[];offMsgs();endCall(true);Object.values(momOffs).forEach(f=>f());momOffs={};S.mom={};S.th=null;$("#th").classList.remove("show");S.me=u;S.chat=null;S.reply=null;
+  if(u){
+    update(ref(db,"users/"+u.uid),{name:u.displayName||u.email.split("@")[0]});
+    watch("users",v=>S.users=v);
+    watch("userChats/"+u.uid,v=>{S.chats=v;syncMoms()});
+    watch("reads/"+u.uid,v=>S.reads=v);
+    watch("likes",v=>S.likes=v);
+    watch("settings/"+u.uid,v=>S.set=v);
+    watch("shares/"+u.uid,v=>S.shares=v);
+    watch("posts",v=>S.posts=Object.entries(v).map(([id,p])=>({id,...p})).sort((a,b)=>b.t-a.t),r=>query(r,limitToLast(50)));
+    watch("incoming/"+u.uid,v=>{S.inc=v.cid?v:null;if(S.inc&&!pc){peer=v.from;callUI(nm(v.from),(v.video?"Video":"Voice")+" call…","in")}else if(!S.inc&&!pc)$("#cm").classList.remove("show")});
+  }
+  draw();
+});
+function openChat(uid){
+  if(uid===S.me.uid)return;
+  S.chat=uid;S.msgs=[];S.reply=null;const cid=cidOf(S.me.uid,uid);
+  offMsgs=onValue(query(ref(db,`chats/${cid}/msgs`),limitToLast(100)),s=>{
+    S.msgs=Object.entries(s.val()||{}).map(([id,m])=>({id,...m})).sort((a,b)=>a.t-b.t);
+    set(ref(db,`reads/${S.me.uid}/${cid}`),Date.now());fill();
+  });
+  draw();
+}
+async function send(m){
+  const me=S.me.uid,cid=cidOf(me,S.chat),t=Date.now();
+  if(S.reply){m.reply=S.reply;S.reply=null;rbar()}
+  await push(ref(db,`chats/${cid}/msgs`),{...m,from:me,t});
+  if(m.url)await push(ref(db,`moments/${cid}`),{uid:me,url:m.url,mime:m.mime||"",type:m.type||"",name:m.name||"",t});
+  const last=m.text||{image:"📷 Photo",audio:"🎤 Voice note",video:"🎬 Video"}[kindOf(m)]||"📎 File";
+  await update(ref(db),{[`userChats/${me}/${cid}`]:{with:S.chat,last,t,by:me},[`userChats/${S.chat}/${cid}`]:{with:me,last,t,by:me}});
+}
+
+/* ===== SCREENS (HTML) ===== */
+/* ===== BUBBLE STYLES: DEF = defaults. c1/c2 = gradient colors, tx = text color, r = roundness ===== */
+const DEF={mine:{c1:"#5b6eae",c2:"#7289da",tx:"#ffffff"},theirs:{c1:"#1d1628",c2:"#1d1628",tx:"#f5f0f8"},r:18};
+const bstyle=(s,r,me)=>`background:linear-gradient(135deg,${s.c1},${s.c2});color:${s.tx};border-radius:${r}px ${r}px ${me?"6px":r+"px"} ${me?r+"px":"6px"};padding:9px ${s.pr??13}px 9px ${s.pl??13}px`;
+const bubOf=from=>{  /* [style, roundness, isMine]. A friend's accepted style beats my "their messages" style */
+  const st=S.set||{},me=from===S.me.uid,f=!me&&st.friends?.[from];
+  return me?[st.mine||DEF.mine,st.r??DEF.r,1]:f?[f,f.r??DEF.r,0]:[st.theirs||DEF.theirs,st.r??DEF.r,0];
+};
+const bubStyle=from=>bstyle(...bubOf(from));
+/* the PNG on a bubble: ix/iy = position in %, is = width in px, ir = rotation in degrees */
+const stkHTML=(s,g)=>s&&s.img?`<img class="stk" ${g?`data-g="${g}"`:""} src="${esc(s.img)}" alt="" style="left:${s.ix??50}%;top:${s.iy??50}%;width:${s.is??40}px;transform:translate(-50%,-50%) rotate(${s.ir??0}deg)">`:"";
+const bubPrev=()=>{
+  const st=S.set||{},r=st.r??DEF.r,t=st.theirs||DEF.theirs,m=st.mine||DEF.mine;
+  $("#bprev").innerHTML=`<div class="mr"><div class="b" style="${bstyle(t,r,0)}">Hey, how are you?${stkHTML(t,"theirs")}</div></div><div class="mr me" style="margin:8px 0 14px"><div class="b me" style="${bstyle(m,r,1)}">Great, you?${stkHTML(m,"mine")}</div></div>`;
+};
+const bubSettings=()=>{
+  const st=S.set||{},r=st.r??DEF.r;
+  const pick=(g,f,l,v)=>`<label class="pk">${l}<input type="color" data-bs="${g}.${f}" value="${v}"></label>`;
+  const sl=(g,f,l,a,b,v)=>`<label class="pk" style="display:block;margin-top:8px">${l}<input type="range" min="${a}" max="${b}" value="${v}" data-bs="${g}.${f}"></label>`;
+  const grp=(g,l,s)=>`<b class="small" style="display:block;margin-top:16px">${l}</b><div class="row">${pick(g,"c1","From",s.c1)}${pick(g,"c2","To",s.c2)}${pick(g,"tx","Text",s.tx)}</div>
+    ${sl(g,"pl","Space before text",0,40,s.pl??13)}${sl(g,"pr","Space after text",0,40,s.pr??13)}
+    <div class="row" style="margin-top:10px"><button class="btn soft sm" data-act="bpng" data-g="${g}">${s.img?"Change PNG":"Add PNG"}</button>${s.img?`<button class="btn soft sm" data-act="bpngx" data-g="${g}">Remove PNG</button>`:""}</div>
+    ${s.img?sl(g,"is","PNG size",10,140,s.is??40)+sl(g,"ir","PNG rotation",-180,180,s.ir??0)+'<div class="small mut" style="margin-top:6px">Drag the PNG in the preview to place it anywhere</div>':""}`;
+  return `<div class="card" style="text-align:left;margin-top:20px"><h3 style="margin:0 0 12px">Chat bubbles</h3><div id="bprev" class="pv"></div>
+  ${grp("mine","My messages",st.mine||DEF.mine)}${grp("theirs","Their messages",st.theirs||DEF.theirs)}
+  <label class="pk" style="display:block;margin-top:16px">Roundness<input type="range" min="4" max="26" value="${r}" data-bs="r"></label>
+  <button class="btn soft sm" style="margin-top:12px" data-act="bsreset">Reset all</button><input type="file" id="bpngf" accept="image/png" hidden></div>
+  <div class="card" style="text-align:left"><h3 style="margin:0 0 12px">Friend bubbles</h3><div id="bfr"></div></div>`;
+};
+const bfrHTML=()=>{
+  const reqs=Object.entries(S.shares||{}).map(([u,x])=>`<div class="item" style="cursor:default;flex-wrap:wrap">${av(u)}<div class="grow"><b class="ell">${esc(nm(u))}</b><div class="mut small">wants you to see their messages like this</div></div><div class="row"><button class="btn sm" data-act="bacc" data-uid="${u}">Accept</button><button class="btn soft sm" data-act="bdec" data-uid="${u}">✕</button></div><div class="mr" style="width:100%"><div class="b" style="${bstyle(x,x.r??DEF.r,0)}">Hello 👋${stkHTML(x)}</div></div></div>`).join("");
+  const used=Object.keys((S.set||{}).friends||{}).map(u=>`<div class="item" style="cursor:default">${av(u)}<div class="grow ell">Using <b>${esc(nm(u))}</b>'s bubble</div><button class="btn soft sm" data-act="brem" data-uid="${u}">Remove</button></div>`).join("");
+  const fr=[...new Set(Object.values(S.chats).map(c=>c.with))].map(u=>`<div class="item" style="cursor:default">${av(u)}<div class="grow ell">${esc(nm(u))}</div><button class="btn sm" data-act="bsend" data-uid="${u}">Send my bubble</button></div>`).join("");
+  return `${reqs?`<b class="small">Requests</b>${reqs}`:""}${used?`<b class="small">Accepted</b>${used}`:""}<b class="small">Send my bubble to…</b>${fr||'<div class="hint">Start a chat first</div>'}<p class="mut small">They have to accept before it shows on their screen.</p>`;
+};
+const lbl=r=>r.text||{image:"Photo",video:"Video",audio:"Voice note"}[r.kind]||r.name||"File";
+const rth=r=>{
+  const u=esc(r.url||"");if(!u)return"";
+  if(r.kind==="image")return `<img class="rth" src="${u}" alt="">`;
+  if(r.kind==="video")return `<video class="rth" src="${u}#t=0.1" preload="metadata" muted playsinline></video>`;
+  return `<span class="rth ico">${r.kind==="audio"?"🎤":"📄"}</span>`;
+};
+const vpHTML=(m,big)=>`<div class="vp paused" data-act="vptoggle" data-id="${m.id}"><video src="${esc(m.url)}#t=0.1" preload="metadata" playsinline></video><span class="vpplay"><span>▶</span></span><div class="vpbar"><div class="vptrack"><div class="vpfill"></div></div></div></div>`;
+const msgHTML=m=>{
+  const k=kindOf(m),u=esc(m.url||""),me=m.from===S.me.uid,md=m.url&&!m.text&&!m.reply?" media":"";let b="";
+  if(m.reply)b+=`<div class="rq" data-act="jump" data-id="${esc(m.reply.id)}">${rth(m.reply)}<div class="rqt"><b>${esc(nm(m.reply.from))}</b> ${esc(lbl(m.reply))}</div></div>`;
+  if(k==="image")b+=`<img class="pic" src="${u}" loading="lazy" data-act="view" data-id="${m.id}">`;
+  else if(k==="video")b+=vpHTML(m);
+  else if(k==="audio")b+=`<audio controls preload="none" src="${u}"></audio>`;
+  else if(k!=="msg")b+=`<div class="fc" data-act="view" data-id="${m.id}">${ic("file")}<span class="ell">${esc(m.name||"File")}</span></div>`;
+  return `<div class="mr ${me?"me":""}" data-id="${m.id}"><div class="b ${me?"me":""}${md}"${md?"":` style="${bubStyle(m.from)}"`}>${b}${esc(m.text||"")}${md?"":stkHTML(bubOf(m.from)[0])}</div><div class="mt">${fmtT(m.t)}</div></div>`;
+};
+const rowHTML=(uid,sub,t,pip)=>`<div class="item" data-act="open" data-uid="${uid}">${av(uid)}<div class="grow"><b class="ell">${esc(nm(uid))}</b><div class="mut small ell">${esc(sub)}</div></div>${t?`<span class="mut small">${when(t)}</span>`:""}${pip?'<i class="pip"></i>':""}</div>`;
+const listHTML=()=>{
+  if(S.q)return Object.keys(S.users).filter(u=>u!==S.me.uid&&nm(u).toLowerCase().includes(S.q)).map(u=>rowHTML(u,S.users[u]?.bio||"Tap to chat")).join("")||'<div class="hint">No one found</div>';
+  return Object.entries(S.chats).sort((a,b)=>b[1].t-a[1].t).map(([c,v])=>rowHTML(v.with,v.last,v.t,isUnread(c,v))).join("")||'<div class="hint">No chats yet. Search for someone above 👆</div>';
+};
+const mpath=m=>m.cid?`moments/${m.cid}/${m.id}`:`posts/${m.id}`;
+const allMoments=()=>[
+  ...S.posts.map(p=>({...p,cid:"",url:p.img||"",mime:p.img?"image/*":""})),
+  ...Object.entries(S.mom).flatMap(([cid,o])=>Object.entries(o).map(([id,m])=>({id,cid,...m})))
+].sort((a,b)=>b.t-a.t);
+const momentHTML=(m,inThread)=>{
+  const k=kindOf(m),u=esc(m.url||""),n=Object.keys(S.likes[m.id]||{}),nc=Object.keys(m.comments||{}).length;
+  const media=k==="image"?`<img class="pic" src="${u}" loading="lazy" data-act="view" data-id="${m.id}">`:k==="video"?vpHTML(m):k==="audio"?`<audio controls preload="none" src="${u}" style="width:100%"></audio>`:k!=="msg"?`<div class="fc" data-act="view" data-id="${m.id}">${ic("file")}<span class="ell">${esc(m.name||"File")}</span></div>`:"";
+  return `<div class="card"><div class="row">${av(m.uid,"sm")}<div class="grow"><b>${esc(nm(m.uid))}</b><div class="mut small">${when(m.t)}${m.cid?" · from chat":""}</div></div>${m.cid||m.uid===S.me.uid?`<button class="ib" data-act="pdel" data-id="${m.id}">${ic("trash")}</button>`:""}</div>${m.text?`<p style="white-space:pre-wrap">${esc(m.text)}</p>`:""}${media?`<div style="margin-top:10px">${media}</div>`:""}${inThread?"":`<div class="act"><button class="${n.includes(S.me.uid)?"on":""}" data-act="like" data-id="${m.id}">${ic("heart")}${n.length}</button><button data-act="thread" data-id="${m.id}">${ic("chat")}${nc}</button></div>`}</div>`;
+};
+function draw(){
+  if(!S.me){
+    const up=S.mode==="up";
+    app.innerHTML=`<div class="auth"><div class="logo">U<b>s</b></div><div class="mut">Chat with anyone.</div>
+    <div class="seg"><button class="${up?"":"on"}" data-act="mode" data-m="in">Log in</button><button class="${up?"on":""}" data-act="mode" data-m="up">Sign up</button></div>
+    ${up?'<input id="nm" placeholder="Your name" autocomplete="name">':""}<input id="em" type="email" placeholder="Email" autocomplete="email"><input id="pw" type="password" placeholder="Password (6+ chars)" autocomplete="current-password">
+    <div class="err" id="err"></div><button class="btn full" data-act="auth">${up?"Create account":"Log in"}</button></div>`;
+    return;
+  }
+  if(S.chat){
+    app.innerHTML=`<div class="top"><button class="ib" data-act="back">${ic("back")}</button>${av(S.chat,"sm")}<div class="grow"><h1 class="ell">${esc(nm(S.chat))}</h1>${S.users[S.chat]?.bio?`<div class="mut small ell">${esc(S.users[S.chat].bio)}</div>`:""}</div><button class="ib" data-act="call" data-v="0">${ic("phone")}</button><button class="ib" data-act="call" data-v="1">${ic("vid")}</button></div>
+    <div class="msgs" id="msgs"></div><div id="rb"></div>
+    <div class="composer"><button class="ib" data-act="attach">${ic("clip")}</button><input id="txt" placeholder="Message" autocomplete="off"><button class="ib" id="mic" data-act="mic">${ic("mic")}</button><button class="ib acc" data-act="send">${ic("send")}</button></div><input type="file" id="file" hidden>`;
+    rbar();fill();return;
+  }
+  const pages={
+    chats:`<div class="pad"><input id="q" placeholder="Search people…" value="${esc(S.q)}"><div id="list"></div></div>`,
+    feed:`<div class="pad"><div class="card"><textarea id="ptxt" rows="2" placeholder="Share something…"></textarea><div class="row" style="margin-top:10px"><button class="btn soft sm" data-act="pickimg">${ic("clip")} Photo</button><span class="mut small grow ell" id="pname"></span><button class="btn sm" data-act="post">Post</button></div></div><div id="feed"></div></div><input type="file" id="pfile" accept="image/*" hidden>`,
+    me:`<div class="pad center"><div data-act="avatar" style="display:inline-block;margin-top:20px">${av(S.me.uid,"big")}</div><h2>${esc(nm(S.me.uid))}</h2><div class="mut small">${esc(S.me.email)}</div><p class="mut small">Tap the photo to change it</p>
+    <div class="card" style="text-align:left"><label class="small mut" style="display:block;margin-bottom:6px">Username</label><input id="unm" maxlength="24" value="${esc(nm(S.me.uid))}"><label class="small mut" style="display:block;margin:12px 0 6px">Bio</label><textarea id="ubio" rows="3" maxlength="160" placeholder="Tell people about you">${esc(S.users[S.me.uid]?.bio||"")}</textarea><button class="btn sm" style="margin-top:12px" data-act="saveprof">Save</button></div>
+    <button class="btn soft" data-act="logout">Log out</button>${bubSettings()}</div><input type="file" id="afile" accept="image/*" hidden>`
+  };
+  const titles={chats:"Chats",feed:"Moments",me:"Profile"};
+  const tabs=[["chats","chat"],["feed","heart"],["me","user"]].map(([k,i])=>`<button class="${S.page===k?"on":""}" data-act="nav" data-p="${k}">${ic(i)}${titles[k]}${k==="chats"?'<span class="badge" id="bdg" hidden></span>':k==="me"?'<span class="badge" id="bdg2" hidden></span>':""}</button>`).join("");
+  app.innerHTML=`<div class="top"><h1>${titles[S.page]}</h1></div><div class="view">${pages[S.page]}</div><nav class="nav">${tabs}</nav>`;
+  fill();
+}
+/* fill() refreshes only the live parts, so typing never gets interrupted */
+function fill(){
+  if(!S.me)return;
+  const b=$("#bdg");if(b){const n=Object.entries(S.chats).filter(([c,v])=>isUnread(c,v)).length;b.hidden=!n;b.textContent=n}
+  const b2=$("#bdg2");if(b2){const n=Object.keys(S.shares||{}).length;b2.hidden=!n;b2.textContent=n}
+  if($("#bprev"))bubPrev();
+  if($("#bfr"))$("#bfr").innerHTML=bfrHTML();
+  const m=$("#msgs");
+  if(m){const sig=S.msgs.length+":"+(S.msgs.at(-1)?.id||"");if(m.dataset.sig!==sig){m.dataset.sig=sig;const end=m.scrollHeight-m.scrollTop-m.clientHeight<80;m.innerHTML=S.msgs.map(msgHTML).join("")||'<div class="hint">Say hi 👋</div>';if(end)m.scrollTop=m.scrollHeight}}
+  if($("#list"))$("#list").innerHTML=listHTML();
+  if($("#feed")){
+    const ms=allMoments(),f=$("#feed"),sg=ms.map(m=>m.id+":"+Object.keys(S.likes[m.id]||{}).length+":"+Object.keys(m.comments||{}).length).join()+Object.keys(S.users).length;
+    if(f.dataset.sig!==sg){f.dataset.sig=sg;f.innerHTML=ms.map(m=>momentHTML(m)).join("")||'<div class="hint">No moments yet. Files you send in chats show up here.</div>'}
+  }
+  thFill();
+}
+const rbar=()=>{const r=$("#rb");if(r)r.innerHTML=S.reply?`<div class="rp">${rth(S.reply)}<div class="grow ell"><b>${esc(nm(S.reply.from))}</b><div class="mut ell">${esc(lbl(S.reply))}</div></div><button class="ib" data-act="noreply">✕</button></div>`:""};
+
+const startReply=m=>{S.reply={id:m.id,from:m.from,text:m.text||"",kind:kindOf(m),url:m.url||"",name:m.name||""};rbar();$("#txt")?.focus();navigator.vibrate?.(15)};
+
+/* ===== DISCUSSION THREAD: comments under a moment, nested as deep as you like ===== */
+function openThread(id){
+  const m=allMoments().find(x=>x.id===id);if(!m)return;S.th=id;S.cr=null;
+  $("#th").innerHTML=`<div class="top"><button class="ib" data-act="thclose">${ic("back")}</button><h1>Discussion</h1></div><div class="view"><div class="pad"><div id="thh">${momentHTML(m,true)}</div><div id="thl"></div></div></div><div id="thr"></div><div class="composer"><input id="thi" placeholder="Write a reply…" autocomplete="off"><button class="ib acc" data-act="thsend">${ic("send")}</button></div>`;
+  $("#th").classList.add("show");thFill();
+}
+function thFill(){
+  const el=$("#thl");if(!el||!S.th)return;
+  const m=allMoments().find(x=>x.id===S.th);
+  if(!m){A.thclose();toast("This moment was deleted");return}
+  const cs=Object.entries(m.comments||{}).map(([id,c])=>({id,...c})).sort((a,b)=>a.t-b.t),kids={};
+  cs.forEach(c=>(kids[c.parent||""]??=[]).push(c));
+  const node=(c,d)=>`<div class="cm" style="margin-left:${Math.min(d,5)*14}px"><div class="row" style="align-items:flex-start">${av(c.uid,"sm")}<div class="grow"><b>${esc(nm(c.uid))}</b> <span class="mut small">${when(c.t)}</span><div style="white-space:pre-wrap">${esc(c.text)}</div><div class="small"><button data-act="cr" data-id="${c.id}">Reply</button>${c.uid===S.me.uid?` <button data-act="cdel" data-id="${c.id}">Delete</button>`:""}</div></div></div></div>${(kids[c.id]||[]).map(k=>node(k,d+1)).join("")}`;
+  el.innerHTML=`<h3 class="mut">Discussion</h3>${(kids[""]||[]).map(c=>node(c,0)).join("")||'<div class="hint">No replies yet</div>'}`;
+}
+const thBar=()=>{
+  const el=$("#thr");if(!el)return;
+  const m=allMoments().find(x=>x.id===S.th),c=S.cr&&m?.comments?.[S.cr];
+  el.innerHTML=c?`<div class="rp"><div class="grow ell">Replying to <b>${esc(nm(c.uid))}</b>: ${esc(c.text)}</div><button class="ib" data-act="crx">✕</button></div>`:"";
+};
+
+/* ===== VOICE NOTES ===== */
+let rec=null;
+async function mic(){
+  if(rec){rec.stop();return}
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({audio:true}),ch=[];rec=new MediaRecorder(st);
+    rec.ondataavailable=e=>ch.push(e.data);
+    rec.onstop=async()=>{
+      st.getTracks().forEach(t=>t.stop());rec=null;$("#mic")?.classList.remove("recording");
+      try{toast("Sending…");const r=await upload(new File(ch,"voice.webm",{type:"audio/webm"}));await send({url:r.url,mime:"audio/webm",name:"Voice note"})}catch(e){toast(e.message)}
+    };
+    rec.start();$("#mic").classList.add("recording");
+  }catch{toast("Microphone blocked")}
+}
+
+/* ===== CALLS (WebRTC, signalling through Firebase: calls/<chatId> and incoming/<uid>) ===== */
+let pc=null,ls=null,cid0=null,peer=null,offC=[];
+function callUI(t,s,mode){$("#ct").textContent=t;$("#cs").textContent=s;$("#cav").innerHTML=av(peer,"big");$("#cin").style.display=mode==="in"?"flex":"none";$("#cact").style.display=mode==="act"?"flex":"none";$("#cm").classList.add("show")}
+async function rtc(video){
+  ls=await navigator.mediaDevices.getUserMedia({audio:true,video:!!video});
+  pc=new RTCPeerConnection({iceServers:CONFIG.ice});ls.getTracks().forEach(t=>pc.addTrack(t,ls));
+  $("#lv").srcObject=ls;
+  pc.ontrack=e=>{$("#rv").srcObject=e.streams[0];if(video)$("#grid").style.display="grid"};
+  pc.onicecandidate=e=>e.candidate&&push(ref(db,`calls/${cid0}/ice/${S.me.uid}`),e.candidate.toJSON());
+  offC.push(onValue(ref(db,`calls/${cid0}/state`),s=>{if(s.val()==="ended")endCall()}));
+}
+const listenIce=()=>offC.push(onChildAdded(ref(db,`calls/${cid0}/ice/${peer}`),s=>pc?.addIceCandidate(s.val()).catch(()=>{})));
+async function startCall(video){
+  peer=S.chat;cid0=cidOf(S.me.uid,peer);
+  try{
+    await remove(ref(db,"calls/"+cid0));await rtc(video);callUI(nm(peer),"Calling…","act");
+    offC.push(onValue(ref(db,`calls/${cid0}/answer`),async s=>{const a=s.val();if(a&&!pc.currentRemoteDescription){await pc.setRemoteDescription(a);listenIce();callUI(nm(peer),"Connected","act")}}));
+    await pc.setLocalDescription(await pc.createOffer());
+    await update(ref(db,"calls/"+cid0),{from:S.me.uid,video:!!video,offer:{type:pc.localDescription.type,sdp:pc.localDescription.sdp},state:"ringing"});
+    await set(ref(db,"incoming/"+peer),{cid:cid0,from:S.me.uid,video:!!video});
+  }catch(e){toast("Call failed: "+e.message);endCall()}
+}
+async function answerCall(){
+  const i=S.inc;peer=i.from;cid0=i.cid;
+  try{
+    await rtc(i.video);
+    await pc.setRemoteDescription((await get(ref(db,`calls/${cid0}/offer`))).val());listenIce();
+    await pc.setLocalDescription(await pc.createAnswer());
+    await update(ref(db,"calls/"+cid0),{answer:{type:pc.localDescription.type,sdp:pc.localDescription.sdp},state:"active"});
+    remove(ref(db,"incoming/"+S.me.uid));callUI(nm(peer),"Connected","act");
+  }catch(e){toast("Call failed: "+e.message);endCall()}
+}
+function endCall(quiet){
+  const c=cid0;cid0=null;
+  offC.forEach(f=>f());offC=[];pc?.close();pc=null;ls?.getTracks().forEach(t=>t.stop());ls=null;
+  $("#cm").classList.remove("show");$("#grid").style.display="none";
+  if(c&&!quiet){update(ref(db,"calls/"+c),{state:"ended"});if(peer)remove(ref(db,"incoming/"+peer));if(S.me)remove(ref(db,"incoming/"+S.me.uid))}
+}
+
+/* ===== ACTIONS: every button has data-act="name" and runs A.name ===== */
+const hideMenu=()=>{$("#menu").classList.remove("show");$("#ov").classList.remove("show")};
+function showMenu(b){
+  const id=b.closest("[data-id]").dataset.id,m=msgOf(id);if(!m)return;S.menu=id;
+  $("#mdl").style.display=m.url?"block":"none";$("#mdel").style.display=m.from===S.me.uid?"block":"none";
+  const r=b.getBoundingClientRect(),mn=$("#menu");
+  mn.style.top=Math.max(70,Math.min(r.bottom+6,innerHeight-200))+"px";mn.style.left=Math.max(8,Math.min(r.left,innerWidth-180))+"px";
+  mn.classList.add("show");$("#ov").classList.add("show");navigator.vibrate?.(20);
+}
+let lastTap=0,lastEl=null;
+const A={
+  mode:e=>{S.mode=e.dataset.m;draw()},
+  nav:e=>{S.page=e.dataset.p;draw()},
+  open:e=>openChat(e.dataset.uid),
+  back:()=>{offMsgs();S.chat=null;S.reply=null;draw()},
+  attach:()=>$("#file").click(), pickimg:()=>$("#pfile").click(), avatar:()=>$("#afile").click(),
+  logout:()=>signOut(auth),
+  send:()=>{const i=$("#txt"),t=i.value.trim();if(t){i.value="";send({text:t})}},
+  mic,
+  /* bubble requests: a friend's style only shows on your screen after you accept */
+  saveprof:async()=>{
+    const name=$("#unm").value.trim(),bio=$("#ubio").value.trim().slice(0,160);
+    if(name.length<2)return toast("Username needs at least 2 characters");
+    try{await updateProfile(auth.currentUser,{displayName:name});await update(ref(db,"users/"+S.me.uid),{name,bio});toast("Saved");draw()}catch(e){toast(e.message)}
+  },
+  bsend:e=>{const st=S.set||{};set(ref(db,`shares/${e.dataset.uid}/${S.me.uid}`),{...(st.mine||DEF.mine),r:st.r??DEF.r,t:Date.now()});toast("Request sent")},
+  bacc:e=>{const u=e.dataset.uid,x=S.shares[u];if(x){const {t,...st}=x;update(ref(db),{[`settings/${S.me.uid}/friends/${u}`]:st,[`shares/${S.me.uid}/${u}`]:null})}toast("Accepted")},
+  bdec:e=>remove(ref(db,`shares/${S.me.uid}/${e.dataset.uid}`)),
+  brem:e=>remove(ref(db,`settings/${S.me.uid}/friends/${e.dataset.uid}`)),
+  bpng:e=>{S.bg=e.dataset.g;$("#bpngf").click()},
+  bpngx:e=>{const g=e.dataset.g,x={...(S.set[g]||DEF[g])};["img","ix","iy","is","ir"].forEach(k=>delete x[k]);S.set[g]=x;update(ref(db,"settings/"+S.me.uid),{[g]:x});draw()},
+  bsreset:()=>{update(ref(db,"settings/"+S.me.uid),{mine:null,theirs:null,r:null});delete S.set.mine;delete S.set.theirs;delete S.set.r;draw()},
+  like:e=>{const id=e.dataset.id;update(ref(db,"likes/"+id),{[S.me.uid]:S.likes[id]?.[S.me.uid]?null:true})},
+  post:async()=>{
+    const text=$("#ptxt").value.trim();if(!text&&!S.pf)return;
+    try{toast("Posting…");const img=S.pf?(await upload(S.pf)).url:"";await push(ref(db,"posts"),{uid:S.me.uid,text,img,t:Date.now()});S.pf=null;draw()}catch(e){toast(e.message)}
+  },
+  auth:async()=>{
+    const em=$("#em").value.trim(),pw=$("#pw").value,name=$("#nm")?.value.trim();
+    try{
+      if(S.mode==="up"){if(!name)throw{code:"enter your name"};const c=await createUserWithEmailAndPassword(auth,em,pw);await updateProfile(c.user,{displayName:name});await update(ref(db,"users/"+c.user.uid),{name})}
+      else await signInWithEmailAndPassword(auth,em,pw);
+    }catch(e){$("#err").textContent=String(e.code||e.message).replace("auth/","").replace(/-/g," ")}
+  },
+  /* replies + menu */
+  reply:()=>{const m=msgOf(S.menu);hideMenu();if(m)startReply(m)},
+  noreply:()=>{S.reply=null;rbar()},
+  copy:()=>{const m=msgOf(S.menu);hideMenu();navigator.clipboard?.writeText(m?.text||m?.url||"");toast("Copied")},
+  del:()=>{hideMenu();$("#dh").textContent="Delete for both?";$("#dp").textContent="This can't be undone.";$("#dm").classList.add("show")},
+  pdel:e=>{
+    const m=allMoments().find(x=>x.id===e.dataset.id);S.pdel=e.dataset.id;
+    $("#dh").textContent="Delete from Moments?";
+    $("#dp").textContent=m?.cid?"The file and its discussion are removed for both of you. Your chat keeps its copy.":"The post and its discussion disappear for everyone.";
+    $("#dm").classList.add("show");
+  },
+  thread:e=>openThread(e.dataset.id),
+  thclose:()=>{S.th=null;S.cr=null;$("#th").classList.remove("show");$("#th").innerHTML=""},
+  thsend:async()=>{
+    const i=$("#thi"),x=i.value.trim(),m=allMoments().find(y=>y.id===S.th);if(!x||!m)return;
+    i.value="";await push(ref(db,mpath(m)+"/comments"),{uid:S.me.uid,text:x,parent:S.cr||"",t:Date.now()});S.cr=null;thBar();
+  },
+  cr:e=>{S.cr=e.dataset.id;thBar();$("#thi")?.focus()},
+  crx:()=>{S.cr=null;thBar()},
+  cdel:e=>{  /* deletes this reply and everything under it */
+    const m=allMoments().find(x=>x.id===S.th),cs=m?.comments||{},out={};
+    const go=id=>{out[mpath(m)+"/comments/"+id]=null;Object.entries(cs).forEach(([k,c])=>c.parent===id&&go(k))};
+    go(e.dataset.id);update(ref(db),out);if(out[mpath(m)+"/comments/"+S.cr]===null){S.cr=null;thBar()}
+  },
+  dno:()=>{S.pdel=null;$("#dm").classList.remove("show")},
+  dyes:()=>{
+    $("#dm").classList.remove("show");
+    if(S.pdel){  /* moment + its discussion + likes; the chat message is NOT touched */
+      const id=S.pdel,m=allMoments().find(x=>x.id===id);S.pdel=null;
+      if(m)update(ref(db),{[mpath(m)]:null,["likes/"+id]:null});
+    }
+    else remove(ref(db,`chats/${cidOf(S.me.uid,S.chat)}/msgs/${S.menu}`));
+  },
+  closemenu:hideMenu,
+  /* one tap = play/pause, double tap = full screen (double tap again = back) */
+  vptoggle:(el,e)=>{
+    if(e.target.closest(".vpbar"))return;
+    const now=Date.now(),dbl=lastEl===el&&now-lastTap<300;lastEl=el;lastTap=now;
+    if(dbl){lastTap=0;return el.classList.contains("big")?A.closeview():A.vpfull(el)}
+    const v=el.querySelector("video");v.paused?v.play():v.pause();
+  },
+  vpfull:el=>{
+    const m=msgOf(el.dataset.id),old=el.closest(".vp").querySelector("video"),t=old.currentTime;old.pause();S.vm=m;
+    $("#vc").innerHTML=vpHTML(m,true);const v=$("#vc video");
+    v.addEventListener("loadedmetadata",()=>{v.currentTime=t;v.play().catch(()=>{})},{once:true});
+    $("#viewer").classList.add("show");
+  },
+  jump:e=>{const b=$(`.mr[data-id="${e.dataset.id}"] .b`);if(b){b.scrollIntoView({block:"center",behavior:"smooth"});b.classList.add("hl");setTimeout(()=>b.classList.remove("hl"),1500)}else toast("Message not found")},
+  /* viewer */
+  view:e=>{
+    const m=msgOf(e.dataset.id),k=kindOf(m),v=$("#vc");S.vm=m;
+    if(k==="image")v.innerHTML=`<img src="${esc(m.url)}">`;
+    else if(k==="pdf")v.innerHTML=`<iframe src="${esc(m.url)}"></iframe>`;
+    else if(k==="txt"){v.innerHTML='<pre>Loading…</pre>';fetch(m.url).then(r=>r.text()).then(t=>v.innerHTML="<pre>"+esc(t.slice(0,30000))+"</pre>")}
+    else return download(m);
+    $("#viewer").classList.add("show");
+  },
+  closeview:()=>{$("#viewer").classList.remove("show");$("#vc").innerHTML=""},
+  dl:()=>{const m=$("#viewer").classList.contains("show")?S.vm:msgOf(S.menu);hideMenu();if(m)download(m)},
+  /* calls */
+  call:e=>startCall(e.dataset.v==="1"),
+  canswer:answerCall,
+  cdecline:()=>{if(S.inc){cid0=S.inc.cid;peer=S.inc.from}endCall()},
+  cend:()=>endCall()
+};
+document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(el)A[el.dataset.act]?.(el,e)});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="txt")A.send();if(e.key==="Enter"&&e.target.id==="thi")A.thsend()});
+/* drag the PNG inside the preview bubble to move it */
+let dg=null;
+document.addEventListener("pointerdown",e=>{const k=e.target.closest("#bprev .stk");if(k){dg=k;k.setPointerCapture(e.pointerId);e.preventDefault()}});
+document.addEventListener("pointermove",e=>{
+  if(!dg)return;const r=dg.parentElement.getBoundingClientRect();
+  const x=Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100));
+  dg.style.left=x+"%";dg.style.top=y+"%";dg.dataset.x=x;dg.dataset.y=y;
+});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>{
+  if(!dg)return;const g=dg.dataset.g;
+  if(dg.dataset.x){S.set[g]={...S.set[g],ix:Math.round(dg.dataset.x),iy:Math.round(dg.dataset.y)};update(ref(db,"settings/"+S.me.uid),{[g]:S.set[g]})}
+  dg=null;
+}));
+let bsT;
+document.addEventListener("input",e=>{
+  const k=e.target.dataset?.bs;if(!k)return;
+  const [g,f]=k.split(".");S.set=S.set||{};
+  const v=e.target.type==="range"?+e.target.value:e.target.value;if(f)S.set[g]={...(S.set[g]||DEF[g]),[f]:v};else S.set.r=v;
+  bubPrev();clearTimeout(bsT);bsT=setTimeout(()=>update(ref(db,"settings/"+S.me.uid),{[g]:f?S.set[g]:S.set.r}),400);
+});
+document.addEventListener("input",e=>{if(e.target.id==="q"){S.q=e.target.value.trim().toLowerCase();fill()}});
+/* long-press (or right-click) a bubble to open the menu */
+let pt;
+let sx=0,sy=0,sr=null,sd=0;
+document.addEventListener("touchstart",e=>{
+  if(e.target.closest(".vpbar"))return;
+  const b=e.target.closest(".b");if(b)pt=setTimeout(()=>{sr=null;showMenu(b)},450);
+  const r=e.target.closest(".mr");if(r&&!e.target.closest("audio")){sr=r;sx=e.touches[0].clientX;sy=e.touches[0].clientY;sd=0}
+},{passive:true});
+/* swipe a message to the right to reply */
+document.addEventListener("touchmove",e=>{if(!sr)return;const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;if(!sd&&Math.abs(dy)>Math.abs(dx)){sr=null;return}sd=Math.max(0,Math.min(dx,70));sr.style.transform=sd?`translateX(${sd}px)`:""},{passive:true});
+document.addEventListener("touchend",()=>{if(!sr)return;if(sd>=55){const m=msgOf(sr.dataset.id);if(m)startReply(m)}sr.style.transform="";sr=null},{passive:true});
+["touchend","touchmove","touchcancel"].forEach(t=>document.addEventListener(t,()=>clearTimeout(pt),{passive:true}));
+document.addEventListener("contextmenu",e=>{const b=e.target.closest(".b");if(b){e.preventDefault();showMenu(b)}});
+/* video player: tap = play/pause, drag the thin line to seek */
+for(const ev of["timeupdate","play","pause","ended"])document.addEventListener(ev,e=>{
+  const v=e.target;if(v.tagName!=="VIDEO")return;const p=v.closest(".vp");if(!p)return;
+  p.classList.toggle("paused",v.paused);
+  p.querySelector(".vpfill").style.width=(v.duration?v.currentTime/v.duration*100:0)+"%";
+},true);
+/* only one thing plays at a time: starting any video or voice note pauses the rest */
+document.addEventListener("play",e=>{
+  const t=e.target;if(!["VIDEO","AUDIO"].includes(t.tagName)||t.closest("#cm"))return;
+  document.querySelectorAll(".vp video,audio").forEach(o=>o!==t&&o.pause());
+},true);
+let sk=null;
+const seek=e=>{const r=sk.getBoundingClientRect(),v=sk.closest(".vp").querySelector("video");if(v.duration)v.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*v.duration};
+document.addEventListener("pointerdown",e=>{const b=e.target.closest(".vpbar");if(b){sk=b;b.setPointerCapture(e.pointerId);b.closest(".vp").classList.add("drag");seek(e)}});
+document.addEventListener("pointermove",e=>{if(sk)seek(e)});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>{if(sk){sk.closest(".vp").classList.remove("drag");sk=null}}));
+document.addEventListener("change",async e=>{
+  const f=e.target.files?.[0];if(!f)return;const id=e.target.id;e.target.value="";
+  try{
+    if(id==="pfile"){S.pf=f;$("#pname").textContent=f.name;return}
+    toast("Uploading…");const r=await upload(f);
+    if(id==="file")await send({url:r.url,type:r.type,mime:r.mime,name:r.name});
+    if(id==="afile")await update(ref(db,"users/"+S.me.uid),{photo:r.url});
+    if(id==="bpngf"){const g=S.bg;S.set[g]={...(S.set[g]||DEF[g]),img:r.url,ix:50,iy:50,is:40,ir:0};await update(ref(db,"settings/"+S.me.uid),{[g]:S.set[g]});draw()}
+  }catch(x){toast(x.message)}
+});
+</script>
+</body>
+</html>
