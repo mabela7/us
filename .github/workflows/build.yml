@@ -23,9 +23,10 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: www
+          path: docs
 
       - id: d
         uses: actions/deploy-pages@v4
@@ -62,7 +63,6 @@ jobs:
         run: |
           python3 - <<'PY'
           p = "android/app/src/main/AndroidManifest.xml"
-
           s = open(p, encoding="utf-8").read()
 
           add = ""
@@ -81,9 +81,7 @@ jobs:
               if tag not in s:
                   add += '    <uses-permission android:name="%s" />\n' % tag
 
-          features = ["camera", "microphone"]
-
-          for f in features:
+          for f in ["camera", "microphone"]:
               tag = "android.hardware." + f
               if tag not in s:
                   add += '    <uses-feature android:name="%s" android:required="false" />\n' % tag
