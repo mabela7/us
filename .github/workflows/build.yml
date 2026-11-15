@@ -1,4 +1,3 @@
-
 name: build
 
 on:
@@ -59,6 +58,13 @@ jobs:
 
           npx cap add android
 
+      - name: Push setup
+        run: |
+          MAJOR=$(node -p "require('@capacitor/core/package.json').version.split('.')[0]")
+          npm i @capacitor/push-notifications@$MAJOR
+          test -f google-services.json || { echo "google-services.json missing in repo root"; exit 1; }
+          cp google-services.json android/app/google-services.json
+
       - name: Add Android permissions
         run: |
           python3 - <<'PY'
@@ -73,7 +79,8 @@ jobs:
               "CAMERA",
               "MODIFY_AUDIO_SETTINGS",
               "ACCESS_NETWORK_STATE",
-              "ACCESS_WIFI_STATE"
+              "ACCESS_WIFI_STATE",
+              "POST_NOTIFICATIONS"
           ]
 
           for x in permissions:
@@ -94,6 +101,7 @@ jobs:
 
           grep -q "android.permission.RECORD_AUDIO" android/app/src/main/AndroidManifest.xml
           grep -q "android.permission.CAMERA" android/app/src/main/AndroidManifest.xml
+          grep -q "android.permission.POST_NOTIFICATIONS" android/app/src/main/AndroidManifest.xml
 
       - name: Prepare Android assets
         run: |
@@ -102,6 +110,22 @@ jobs:
       - name: Sync Capacitor
         run: |
           npx cap sync android
+
+      - name: Fixed signing key
+        run: |
+          mkdir -p ~/.android
+          if [ -f debug.keystore ]; then
+            cp debug.keystore ~/.android/debug.keystore
+          else
+            keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Upload keystore (only when newly made)
+        if: hashFiles('debug.keystore') == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-keystore
+          path: /home/runner/.android/debug.keystore
 
       - name: Build APK
         run: |
