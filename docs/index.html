@@ -462,6 +462,9 @@ async function notifyPeer(to,type,body,chatId){
   }catch{}
 }
 /* ===== VOICE NOTES ===== */
+
+  let rec = null;
+  
 async function mic(){
   if(rec){
     if(rec.state!=="inactive") rec.stop();
