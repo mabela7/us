@@ -104,6 +104,9 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.webkit.ValueCallback;
 import android.os.Build;
 import android.view.WindowManager;
 import com.getcapacitor.BridgeActivity;
@@ -115,7 +118,31 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 public class MainActivity extends BridgeActivity {
   static boolean fg = false;
-  static String pending = "";
+  static volatile String pending = "";
+  private final Handler hh = new Handler(Looper.getMainLooper());
+
+  /* Answer / Decline from the notification: once the app is open, press the in-app Answer / Decline button
+     ourselves (retries for 25 s while the page loads and the call shows up). Works with any version of the page. */
+  private class AutoClick implements Runnable {
+    final String js;
+    final long t0 = System.currentTimeMillis();
+    AutoClick(String act) {
+      String sel = "answer".equals(act) ? "canswer" : "cdecline";
+      js = "(function(){try{var m=document.getElementById('cm'),c=document.getElementById('cin'),b=document.querySelector('[data-act=" + sel + "]');"
+         + "if(m&&c&&b&&m.classList.contains('show')&&c.style.display!=='none'){b.click();return 'ok'}}catch(e){}return 'wait'})()";
+    }
+    public void run() {
+      if (System.currentTimeMillis() - t0 > 25000) return;
+      try {
+        getBridge().getWebView().evaluateJavascript(js, new ValueCallback<String>() {
+          public void onReceiveValue(String v) {
+            if (v != null && v.contains("ok")) return;
+            hh.postDelayed(AutoClick.this, 500);
+          }
+        });
+      } catch (Exception e) { hh.postDelayed(this, 500); }
+    }
+  }
 
   @CapacitorPlugin(name = "NativeCall")
   public static class NativeCall extends Plugin {
@@ -171,6 +198,7 @@ public class MainActivity extends BridgeActivity {
     pending = a + ":" + i.getStringExtra("callFrom");
     i.removeExtra("callAct");
     CallMessagingService.cancel(this);
+    if ("answer".equals(a) || "decline".equals(a)) { hh.removeCallbacksAndMessages(null); hh.post(new AutoClick(a)); }
     if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true); }
     else getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
   }
