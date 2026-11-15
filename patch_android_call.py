@@ -65,7 +65,7 @@ public class CallMessagingService extends com.capacitorjs.plugins.pushnotificati
       ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
       nm.createNotificationChannel(ch);
     }
-    String from = d.get("from") == null ? "" : d.get("from");
+    String from = d.get("fromUid") == null ? "" : d.get("fromUid");
     String name = d.get("name") == null ? "Someone" : d.get("name");
     boolean vid = "1".equals(d.get("video"));
     PendingIntent open = pi("open", from, 1), answer = pi("answer", from, 2), decline = pi("decline", from, 3);
@@ -184,4 +184,3 @@ if "firebase-bom" not in gs:
         sys.exit("dependencies block not found in app/build.gradle")
     open(g, "w").write(gs)
 print("call-style notification patched, package", pkg)
-    
