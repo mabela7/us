@@ -436,19 +436,76 @@ async function notifyPeer(to,type,body,chatId){
   }catch{}
 }
 /* ===== VOICE NOTES ===== */
+
 let rec=null;
 async function mic(){
   if(rec){rec.stop();return}
+  let st;
   try{
-    const st=await navigator.mediaDevices.getUserMedia({audio:true}),ch=[];rec=new MediaRecorder(st);
-    rec.ondataavailable=e=>ch.push(e.data);
-    rec.onstop=async()=>{
-      st.getTracks().forEach(t=>t.stop());rec=null;$("#mic")?.classList.remove("recording");
-      try{toast("Sending…");const r=await upload(new File(ch,"voice.webm",{type:"audio/webm"}));await send({url:r.url,mime:"audio/webm",name:"Voice note"})}catch(e){toast(e.message)}
+    st=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:false,
+        channelCount:1,
+        sampleRate:48000
+      }
+    });
+
+    const ch=[];
+    const mimeTypes=[
+      "audio/webm;codecs=opus",
+      "audio/ogg;codecs=opus",
+      "audio/webm"
+    ];
+    const mimeType=mimeTypes.find(t=>MediaRecorder.isTypeSupported(t));
+
+    rec=new MediaRecorder(st,{
+      ...(mimeType?{mimeType}:{}),
+      audioBitsPerSecond:128000
+    });
+
+    rec.ondataavailable=e=>{
+      if(e.data&&e.data.size)ch.push(e.data);
     };
-    rec.start();$("#mic").classList.add("recording");
-  }catch{toast("Microphone blocked")}
+
+    rec.onerror=()=>{
+      st.getTracks().forEach(t=>t.stop());
+      rec=null;
+      $("#mic")?.classList.remove("recording");
+      toast("Recording failed");
+    };
+
+    rec.onstop=async()=>{
+      st.getTracks().forEach(t=>t.stop());
+      const recording=rec;
+      rec=null;
+      $("#mic")?.classList.remove("recording");
+
+      try{
+        if(!ch.length)throw new Error("No audio recorded");
+        const blob=new Blob(ch,{type:recording.mimeType||"audio/webm"});
+        const ext=blob.type.includes("ogg")?"ogg":"webm";
+        toast("Sending…");
+        const file=new File([blob],`voice.${ext}`,{type:blob.type});
+        const r=await upload(file);
+        await send({url:r.url,mime:blob.type,name:"Voice note"});
+      }catch(e){
+        toast(e.message||"Voice upload failed");
+      }
+    };
+
+    rec.start(250);
+    $("#mic")?.classList.add("recording");
+
+  }catch(e){
+    st?.getTracks().forEach(t=>t.stop());
+    rec=null;
+    $("#mic")?.classList.remove("recording");
+    toast("Microphone blocked or unavailable");
+  }
 }
+
 
 /* ===== CALLS (WebRTC, signalling through Firebase: calls/<chatId> and incoming/<uid>) ===== */
 let pc=null,ls=null,cid0=null,peer=null,offC=[];
