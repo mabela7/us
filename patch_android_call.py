@@ -150,8 +150,8 @@ public class MainActivity extends BridgeActivity {
     else getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
   }
 
-  @Override protected void onResume() { super.onResume(); fg = true; }
-  @Override protected void onPause() { fg = false; super.onPause(); }
+  @Override public void onResume() { super.onResume(); fg = true; }
+  @Override public void onPause() { fg = false; super.onPause(); }
 }
 """
 
@@ -174,4 +174,14 @@ if "CallMessagingService" not in m:
     """
     m = m.replace("</application>", svc + "</application>")
 open(mans, "w").write(m)
+
+# firebase-messaging is not on the app's compile classpath by default (the push plugin hides it)
+g = "android/app/build.gradle"
+gs = open(g).read()
+if "firebase-bom" not in gs:
+    gs, n = re.subn(r"^dependencies\s*\{", "dependencies {\n    implementation platform('com.google.firebase:firebase-bom:32.7.0')\n    implementation 'com.google.firebase:firebase-messaging'", gs, count=1, flags=re.M)
+    if not n:
+        sys.exit("dependencies block not found in app/build.gradle")
+    open(g, "w").write(gs)
 print("call-style notification patched, package", pkg)
+    
