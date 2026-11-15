@@ -410,7 +410,7 @@ async function initPush(){
     if(!pnReady){pnReady=true;
       PN.addListener("registration",t=>{myTok=t.value;dbg("url="+CONFIG.push.url);fn({action:"register",token:myTok}).then(async r=>dbg("register "+(r?r.status+" "+(await r.text()).slice(0,150):"failed")))});
       PN.addListener("registrationError",()=>{});
-      PN.addListener("pushNotificationActionPerformed",a=>{const d=a.notification?.data||{};if(d.from){pend=d.from;openPend()}});
+            PN.addListener("pushNotificationActionPerformed",a=>{const d=a.notification?.data||{};if(d.fromUid){pend=d.fromUid;openPend()}});
       await PN.createChannel?.({id:"messages",name:"Messages",importance:4,vibration:true});
       await PN.createChannel?.({id:"calls",name:"Calls",importance:5,vibration:true});
     }
