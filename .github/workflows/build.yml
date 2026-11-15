@@ -107,6 +107,21 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets/public
 
+      - name: Icons
+        run: |
+          npx @capacitor/assets generate --android --assetPath assets --iconBackgroundColor '#09070f' --iconBackgroundColorDark '#09070f'
+          mkdir -p android/app/src/main/res/drawable
+          cp assets/notif.png android/app/src/main/res/drawable/ic_stat.png
+          python3 - <<'PY'
+          import re
+          p="android/app/src/main/AndroidManifest.xml"
+          s=open(p,encoding="utf-8").read()
+          m='<meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat" />'
+          if "default_notification_icon" not in s:
+              s=re.sub(r'(<application[^>]*>)',r'\1\n        '+m,s,count=1)
+          open(p,"w",encoding="utf-8").write(s)
+          PY
+
       - name: Sync Capacitor
         run: |
           npx cap sync android
