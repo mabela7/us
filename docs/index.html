@@ -609,7 +609,7 @@ const A={
   attach:()=>$("#file").click(), pickimg:()=>$("#pfile").click(), avatar:()=>$("#afile").click(),
   logout:async()=>{await unregPush();signOut(auth)},
   send:()=>{const i=$("#txt"),t=i.value.trim();if(t){i.value="";send({text:t})}},
-  mic,
+  mic:()=>{console.log("MIC BUTTON CLICKED");mic()},
   saveprof:async()=>{
     const name=$("#unm").value.trim(),bio=$("#ubio").value.trim().slice(0,160);
     if(name.length<2)return toast("Username needs at least 2 characters");
