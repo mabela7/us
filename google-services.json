@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "933820691428",
+    "firebase_url": "https://library-a60e3-default-rtdb.firebaseio.com",
+    "project_id": "library-a60e3",
+    "storage_bucket": "library-a60e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933820691428:android:6afd0774f1e4a1cd0acdf1",
+        "android_client_info": {
+          "package_name": "com.mabela.us"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_SxeSW9uzD4qPno_Jb-dlrVV_zmJjLmk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933820691428:android:368510bd20657e0d0acdf1",
+        "android_client_info": {
+          "package_name": "com.notifylab.test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_SxeSW9uzD4qPno_Jb-dlrVV_zmJjLmk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
