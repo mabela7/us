@@ -462,18 +462,93 @@ async function notifyPeer(to,type,body,chatId){
   }catch{}
 }
 /* ===== VOICE NOTES ===== */
-let rec=null;
 async function mic(){
-  if(rec){rec.stop();return}
+  if(rec){
+    if(rec.state!=="inactive") rec.stop();
+    return;
+  }
+
+  let st;
+
   try{
-    const st=await navigator.mediaDevices.getUserMedia({audio:true}),ch=[];rec=new MediaRecorder(st);
-    rec.ondataavailable=e=>ch.push(e.data);
-    rec.onstop=async()=>{
-      st.getTracks().forEach(t=>t.stop());rec=null;$("#mic")?.classList.remove("recording");
-      try{toast("Sending…");const r=await upload(new File(ch,"voice.webm",{type:"audio/webm"}));await send({url:r.url,mime:"audio/webm",name:"Voice note"})}catch(e){toast(e.message)}
+    st=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:true,
+        noiseSuppression:true,
+        autoGainControl:true,
+        channelCount:1,
+        sampleRate:48000
+      }
+    });
+
+    const types=[
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4"
+    ];
+
+    const mime=types.find(t=>MediaRecorder.isTypeSupported(t));
+
+    const opts={
+      audioBitsPerSecond:128000
     };
-    rec.start();$("#mic").classList.add("recording");
-  }catch{toast("Microphone blocked")}
+
+    if(mime) opts.mimeType=mime;
+
+    const recorder=new MediaRecorder(st,opts);
+    const ch=[];
+
+    rec=recorder;
+
+    recorder.ondataavailable=e=>{
+      if(e.data.size) ch.push(e.data);
+    };
+
+    recorder.onstop=async()=>{
+      st.getTracks().forEach(t=>t.stop());
+
+      if(rec===recorder) rec=null;
+
+      $("#mic")?.classList.remove("recording");
+
+      try{
+        if(!ch.length){
+          toast("No audio recorded");
+          return;
+        }
+
+        const type=recorder.mimeType||"audio/webm";
+        const ext=type.includes("mp4")?"m4a":"webm";
+
+        toast("Sending…");
+
+        const file=new File(
+          ch,
+          `voice.${ext}`,
+          {type}
+        );
+
+        const r=await upload(file);
+
+        await send({
+          url:r.url,
+          mime:type,
+          name:"Voice note"
+        });
+
+      }catch(e){
+        toast(e.message);
+      }
+    };
+
+    recorder.start(250);
+    $("#mic").classList.add("recording");
+
+  }catch(e){
+    st?.getTracks().forEach(t=>t.stop());
+    rec=null;
+    toast("Microphone blocked");
+  }
 }
 
 /* ===== CALLS (WebRTC, signalling through Firebase: calls/<chatId> and incoming/<uid>) ===== */
