@@ -404,6 +404,7 @@ let myTok=null,pend=null,pnReady=false;
 const fn=async b=>{try{const t=await auth.currentUser.getIdToken();return await fetch(CONFIG.push.url,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+t},body:JSON.stringify(b)})}catch{}};
 const dbg=m=>{try{alert("Push debug: "+m)}catch{}};  /* temporary: remove once push works */
 async function initPush(){
+  alert("initPush started");
   dbg("cap="+!!CAP+" native="+NAT+" plugin="+!!PN);
   if(!PN)return;
   try{
