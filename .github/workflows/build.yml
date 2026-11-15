@@ -1,3 +1,4 @@
+
 name: build
 
 on:
@@ -25,10 +26,13 @@ jobs:
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
+          name: us-website-pages
           path: docs
 
       - id: d
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: us-website-pages
 
   apk:
     runs-on: ubuntu-latest
