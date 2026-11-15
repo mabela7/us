@@ -199,7 +199,9 @@ function fileName(m){
 }
 async function download(m){
   const name=fileName(m);
-  if(NC){
+toast("NC exists: "+!!NC);
+toast("Download method: "+typeof NC?.download);
+if(NC){
   try{
     if(typeof NC.download!=="function"){
       toast("Native download method missing");
