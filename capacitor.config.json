@@ -1,5 +1,5 @@
 {
-  "appId": "com.mabela.us",
+  "appId": "com.mabela.us1",
   "appName": "Us.",
   "webDir": "www",
   "server": { "url": "PAGES_URL", "androidScheme": "https" }
