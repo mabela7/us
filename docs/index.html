@@ -796,7 +796,13 @@ const A={
     $("#viewer").classList.add("show");
   },
   closeview:()=>{$("#viewer").classList.remove("show");$("#vc").innerHTML=""},
-  dl:()=>{const m=$("#viewer").classList.contains("show")?S.vm:msgOf(S.menu);hideMenu();if(m)download(m)},
+  dl:()=>{
+  const m=$("#viewer").classList.contains("show")?S.vm:msgOf(S.menu);
+  hideMenu();
+  if(!m){toast("No file selected");return}
+  toast("Download button clicked");
+  download(m);
+},
   /* calls */
   call:e=>startCall(e.dataset.v==="1"),
   canswer:answerCall,
