@@ -408,8 +408,22 @@ async function initPush(){
   if(!PN)return;
   try{
     if(!pnReady){pnReady=true;
-      PN.addListener("registration",t=>{myTok=t.value;dbg("token ok");fn({action:"register",token:myTok}).then(r=>dbg("register "+(r?r.status:"failed")))});
-      PN.addListener("registrationError",()=>{});
+      
+PN.addListener("registration",async t=>{
+  myTok=t.value;
+  dbg("FCM token received");
+
+  try{
+    const r=await fn({action:"register",token:myTok});
+    dbg("Supabase registration: "+(r?.status||"no status"));
+  }catch(e){
+    dbg("Supabase error: "+(e?.message||e));
+  }
+});
+
+PN.addListener("registrationError",e=>{
+  dbg("FCM registration error: "+(e?.message||JSON.stringify(e)));
+});
       PN.addListener("pushNotificationActionPerformed",a=>{const d=a.notification?.data||{};if(d.from){pend=d.from;openPend()}});
       await PN.createChannel?.({id:"messages",name:"Messages",importance:4,vibration:true});
       await PN.createChannel?.({id:"calls",name:"Calls",importance:5,vibration:true});
