@@ -132,6 +132,13 @@ jobs:
         run: |
           npx cap sync android
 
+      - name: Call-style notification (Answer / Decline)
+        run: |
+          test -f patch_android_call.py || { echo "patch_android_call.py missing in repo root"; exit 1; }
+          python3 patch_android_call.py
+          grep -q "CallMessagingService" android/app/src/main/AndroidManifest.xml
+          test -f android/app/src/main/java/*/*/*/CallMessagingService.java || find android/app/src/main/java -name CallMessagingService.java | grep -q .
+
       - name: Fixed signing key
         run: |
           mkdir -p ~/.android
