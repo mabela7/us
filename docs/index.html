@@ -199,8 +199,26 @@ function fileName(m){
 }
 async function download(m){
   const name=fileName(m);
-  if(NC){  /* APK: the WebView cannot save files, so Android's DownloadManager does it -> Downloads folder */
-    try{await NC.download({url:m.url,name,mime:m.mime||""});toast("Downloading "+name+" - see Downloads");return}catch(e){toast("Download: "+(e?.message||e))}
+  if(NC){
+  try{
+    if(typeof NC.download!=="function"){
+      toast("Native download method missing");
+      return;
+    }
+
+    toast("Calling native download…");
+
+    const result=await Promise.race([
+      NC.download({url:m.url,name,mime:m.mime||""}),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("Native download timed out")),8000))
+    ]);
+
+    toast("Native download accepted");
+    return;
+  }catch(e){
+    toast("Native download failed: "+(e?.message||e));
+    return;
+  }
   }
   try{const b=await (await fetch(m.url)).blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click()}
   catch{window.open(m.url,"_blank")}
