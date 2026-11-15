@@ -21,7 +21,9 @@ import android.media.*;
 import android.net.Uri;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.Person;
+import android.graphics.Color;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
@@ -69,7 +71,10 @@ public class CallMessagingService extends com.capacitorjs.plugins.pushnotificati
     String name = d.get("name") == null ? "Someone" : d.get("name");
     boolean vid = "1".equals(d.get("video"));
     PendingIntent open = pi("open", from, 1), answer = pi("answer", from, 2), decline = pi("decline", from, 3);
-    Person p = new Person.Builder().setName(name).setImportant(true).build();
+    SpannableString ans = new SpannableString("Answer");
+    ans.setSpan(new ForegroundColorSpan(Color.parseColor("#2ecc71")), 0, ans.length(), 0);
+    SpannableString dec = new SpannableString("Decline");
+    dec.setSpan(new ForegroundColorSpan(Color.parseColor("#ff5a5f")), 0, dec.length(), 0);
     NotificationCompat.Builder b = new NotificationCompat.Builder(this, CH)
         .setSmallIcon(android.R.drawable.sym_action_call)
         .setContentTitle(name)
@@ -81,8 +86,8 @@ public class CallMessagingService extends com.capacitorjs.plugins.pushnotificati
         .setAutoCancel(false)
         .setTimeoutAfter(40000)
         .setContentIntent(open)
-        .setFullScreenIntent(open, true)
-        .setStyle(NotificationCompat.CallStyle.forIncomingCall(p, decline, answer));
+        .addAction(android.R.drawable.ic_menu_close_clear_cancel, dec, decline)
+        .addAction(android.R.drawable.sym_action_call, ans, answer);
     if (Build.VERSION.SDK_INT < 26) { b.setSound(snd, AudioManager.STREAM_RING); b.setVibrate(new long[]{0, 800, 600, 800}); }
     Notification n = b.build();
     n.flags |= Notification.FLAG_INSISTENT;   // keep ringing until answered / declined / timeout
@@ -93,8 +98,12 @@ public class CallMessagingService extends com.capacitorjs.plugins.pushnotificati
 
 MAIN = """package PKG;
 
+import android.app.DownloadManager;
+import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Build;
 import android.view.WindowManager;
 import com.getcapacitor.BridgeActivity;
@@ -116,6 +125,22 @@ public class MainActivity extends BridgeActivity {
       r.put("v", pending);
       pending = "";
       c.resolve(r);
+    }
+    @PluginMethod
+    public void download(PluginCall c) {
+      try {
+        String url = c.getString("url"), name = c.getString("name", "file"), mime = c.getString("mime", "");
+        if (url == null || url.isEmpty()) { c.reject("no url"); return; }
+        DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
+        r.setTitle(name);
+        r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        if (mime != null && !mime.isEmpty()) r.setMimeType(mime);
+        r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
+        ((DownloadManager) getContext().getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(r);
+        c.resolve();
+      } catch (Exception e) {
+        c.reject(String.valueOf(e.getMessage()));
+      }
     }
     @PluginMethod
     public void cancel(PluginCall c) {
@@ -165,6 +190,8 @@ for perm in ["USE_FULL_SCREEN_INTENT", "VIBRATE", "POST_NOTIFICATIONS", "WAKE_LO
     tag = f'android.permission.{perm}'
     if tag not in m:
         m = m.replace("</manifest>", f'    <uses-permission android:name="{tag}" />\n</manifest>')
+if "WRITE_EXTERNAL_STORAGE" not in m:
+    m = m.replace("</manifest>", '    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />\n</manifest>')
 if "CallMessagingService" not in m:
     svc = f"""
         <service android:name="{pkg}.CallMessagingService" android:exported="false">
@@ -184,3 +211,4 @@ if "firebase-bom" not in gs:
         sys.exit("dependencies block not found in app/build.gradle")
     open(g, "w").write(gs)
 print("call-style notification patched, package", pkg)
+    
