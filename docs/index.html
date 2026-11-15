@@ -426,7 +426,8 @@ PN.addListener("registration",async t=>{
 
   try{
     const r=await fn({action:"register",token:myTok});
-    dbg("Supabase registration: "+(r?.status||"no status"));
+const data=await r.json();
+dbg("Registration: "+JSON.stringify(data));
   }catch(e){
     dbg("Supabase error: "+(e?.message||e));
   }
