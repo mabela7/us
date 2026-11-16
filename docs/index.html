@@ -486,7 +486,7 @@ async function unregPush(){
   myTok=null;
 }
 /* call notification buttons: native (MainActivity) stores "answer:<uid>" / "decline:<uid>"; we pick it up (polling for a few seconds, the page may still be loading) and act on the incoming call */
-const NC=NAT?CAP.registerPlugin?.("NativeCall"):null;let autoAct=null,autoT=0,nTick=null;
+const NC=NAT?(CAP.Plugins?.NativeCall||CAP.registerPlugin?.("NativeCall")):null;let autoAct=null,autoT=0,nTick=null;
 async function nativeCall(){
   if(!NC||!S.me)return;
   try{const r=await NC.take();if(!r?.v)return;
