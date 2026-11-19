@@ -1,0 +1,1483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#09070f">
+<title>Us</title>
+<link rel="icon" id="fav" href="data:,">
+<link rel="apple-touch-icon" id="touch" href="data:,">
+<style>
+/* ===== 1. COLORS & SIZES: change these first ===== */
+:root{
+  --bg:#0b0811;       /* page background */
+  --card:#17121f;     /* cards, bars */
+  --card2:#221b2d;    /* inputs, buttons */
+  --line:#ffffff12;   /* thin borders */
+  --txt:#f5f0f8;      /* main text */
+  --mut:#8c8296;      /* faded text */
+  --acc:#7289da;      /* main accent */
+  --acc2:#5b6eae;     /* darker accent */
+  --bad:#ff6b81;      /* red: badges, likes, delete */
+  --ok:#2ecc71;       /* green: answer call */
+  --radius:16px;
+  --bubble:#1d1628;                                      /* received bubble */
+  --me-bubble:linear-gradient(135deg,#5b6eae,#7289da);   /* sent bubble */
+}
+/* ===== 2. BASE ===== */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer}
+[hidden]{display:none!important}
+.mut{color:var(--mut)} .small{font-size:13px} .center{text-align:center}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row{display:flex;align-items:center;gap:12px} .grow{flex:1;min-width:0}
+.hint{text-align:center;color:var(--mut);padding:30px}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* ===== 3. LAYOUT: top bar, scroll area, bottom nav ===== */
+#app{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.top{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:58px;border-bottom:1px solid var(--line)}
+.top h1{flex:1;margin:0;font-size:17px;min-width:0}
+.view{flex:1;overflow:auto;min-height:0}
+.pad{max-width:640px;margin:0 auto;padding:16px}
+.nav{display:flex;background:#08060d;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;display:grid;justify-items:center;gap:3px;padding:9px 0 7px;font-size:11px;color:var(--mut);position:relative}
+.nav .on{color:var(--acc)}
+.badge{position:absolute;top:4px;left:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;display:grid;place-items:center}
+/* ===== 4. BUTTONS & INPUTS ===== */
+.btn{background:linear-gradient(120deg,var(--acc2),var(--acc));color:#fff;font-weight:650;border-radius:14px;padding:12px 18px}
+.btn.soft{background:var(--card2)} .btn.full{width:100%} .btn.sm{padding:8px 14px;font-size:14px}
+.ib{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--card2);flex:none}
+.ib.acc{background:var(--acc)}
+.ib.recording{background:var(--bad);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{transform:scale(1.12)}}
+input,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:13px 14px;outline:none;resize:none}
+input:focus,textarea:focus{border-color:var(--acc2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+/* ===== 5. AVATARS (size classes: sm, big) ===== */
+.av{--h:220;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;overflow:hidden;font-weight:650;background:hsl(var(--h) 45% 32%);color:hsl(var(--h) 80% 90%)}
+.av.sm{width:32px;height:32px;font-size:14px} .av.big{width:92px;height:92px;font-size:38px}
+.av img{width:100%;height:100%;object-fit:cover}
+/* ===== 6. CHAT: rows, bubbles, media, replies ===== */
+.msgs{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.mr{display:flex;flex-direction:column;align-items:flex-start;touch-action:pan-y;transition:transform .12s}
+.mr.me{align-items:flex-end}
+.b{width:fit-content;max-width:min(86%,340px);padding:9px 13px;background:var(--bubble);border-radius:18px 18px 18px 6px;white-space:pre-wrap;overflow-wrap:anywhere;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.b img{-webkit-user-drag:none}
+.b.me{background:var(--me-bubble);color:#fff;border-radius:18px 18px 6px 18px}
+.b.hl{outline:2px solid var(--acc)}
+.b.media{background:none;padding:0;border-radius:0}  /* files with no text: no bubble */
+.b.media .fc{background:var(--card2)}
+.mt{font-size:10.5px;color:var(--mut);margin-top:3px;padding:0 2px}
+.pic{display:block;max-width:100%;max-height:360px;border-radius:14px;background:var(--card2)}
+/* video player: no browser controls, only a thin seek line */
+.vp{position:relative;display:inline-block;line-height:0;border-radius:14px;overflow:hidden;background:#000;user-select:none;-webkit-user-select:none}
+.vp video{display:block;width:auto;height:auto;max-width:min(86vw,340px);max-height:360px}
+.vp.big{border-radius:8px} .vp.big video{max-width:100vw;max-height:calc(100dvh - 140px)}
+.vpplay{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;transition:opacity .15s}
+.vpplay span{width:54px;height:54px;border-radius:50%;background:#0009;color:#fff;display:grid;place-items:center;font-size:22px;padding-left:4px}
+.vp:not(.paused) .vpplay{opacity:0}
+.vpbar{position:absolute;left:0;right:0;bottom:0;height:26px;display:flex;align-items:flex-end;touch-action:none}
+.vptrack{width:100%;height:3px;background:#ffffff45} .vp.drag .vptrack{height:8px}
+.vpfill{height:100%;width:0;background:var(--acc)}
+.ap{width:min(100%,430px);min-width:260px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.ap-audio{display:none!important}
+.ap-top{display:flex;align-items:center;gap:9px;width:100%;min-height:42px}
+.ap-play,.ap-speed{border:0;background:#ffffff18;color:inherit;border-radius:9px;min-width:38px;height:38px;font-size:14px;font-weight:700}
+.ap-current,.ap-duration{font-size:11px;font-variant-numeric:tabular-nums;opacity:.85;white-space:nowrap}
+.ap-seek{appearance:none;-webkit-appearance:none;flex:1;min-width:55px;width:100%;height:34px;background:transparent;touch-action:pan-y;cursor:pointer;margin:0}
+.ap-seek::-webkit-slider-runnable-track{height:5px;border-radius:9px;background:linear-gradient(to right,var(--acc) 0%,var(--acc) var(--progress,0%),#ffffff45 var(--progress,0%),#ffffff45 100%)}
+.ap-seek::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;margin-top:-6px;border-radius:50%;background:var(--acc);border:2px solid #fff}
+.ap-seek::-moz-range-track{height:5px;border-radius:9px;background:#ffffff45}
+.ap-seek::-moz-range-progress{height:5px;background:var(--acc);border-radius:9px}
+.ap-seek::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--acc);border:2px solid #fff}
+@media(max-width:380px){.ap{min-width:0;padding:8px}.ap-top{gap:6px}.ap-current,.ap-duration{font-size:10px}.ap-play,.ap-speed{min-width:34px;height:36px}}
+.fc{display:flex;gap:8px;align-items:center;padding:9px;background:#ffffff12;border-radius:12px;cursor:pointer}
+.rq{display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;margin-bottom:6px;background:#00000030;border-left:3px solid var(--acc);border-radius:6px;font-size:12px;cursor:pointer;overflow:hidden}
+.rqt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rth{width:38px;height:38px;border-radius:8px;object-fit:cover;flex:none;background:#000;display:block}  /* mini picture / video frame in replies */
+.rth.ico{display:grid;place-items:center;background:var(--card2);font-size:18px}
+.rp{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--card);border-top:1px solid var(--line);border-left:3px solid var(--acc);font-size:13px}
+.composer{display:flex;gap:8px;align-items:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.composer input{border-radius:22px}
+#gifBtn{display:grid;place-items:center;flex:none;font-size:12px;font-weight:800;letter-spacing:.3px}
+.gif-store{position:fixed;inset:0;z-index:180;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.gif-store.show{display:flex}
+.gif-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.gif-head h2{font-size:17px;margin:0;flex:1}
+.gif-search{padding:12px;border-bottom:1px solid var(--line)}
+.gif-results{flex:1;min-height:0;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-content:start}
+.gif-results button{padding:0;border-radius:12px;overflow:hidden;background:var(--card2);min-height:110px}
+.gif-results img{display:block;width:100%;height:150px;object-fit:cover}
+.gif-note{grid-column:1/-1;text-align:center;color:var(--mut);padding:24px 10px}
+.item{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.pip{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:none}
+/* call log rows (started / ended / declined / missed): centered pill, not a chat bubble */
+.mr.cx{align-items:center}
+.cxp{display:flex;align-items:center;gap:9px;padding:6px 14px 6px 6px;border-radius:22px;background:var(--card);border:1px solid var(--line);font-size:13px}
+.cxi{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;background:var(--card2)}
+.cxs{color:var(--mut);font-size:11px}
+.cxp.cok .cxi{background:#2ecc7126} .cxp.cok .cxt{color:var(--ok)}
+.cxp.cbad .cxi{background:#ff6b8126} .cxp.cbad .cxt{color:var(--bad)}
+/* ===== 7. POP-UPS: viewer, long-press menu, delete box, call ===== */
+.viewer{position:fixed;inset:0;z-index:100;background:#08070cf5;display:none;flex-direction:column;align-items:center;justify-content:center;padding:64px 12px 20px}
+.viewer.show{display:flex}
+#vc{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+#vc img,#vc video{max-width:100%;max-height:100%;border-radius:8px}
+#vc iframe{width:100%;height:100%;border:0;border-radius:8px;background:#fff}
+#vc pre{width:100%;max-width:600px;height:100%;overflow:auto;margin:0;padding:16px;background:var(--card);border-radius:12px;white-space:pre-wrap;font-size:13px}
+.viewer .x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:14px}
+.viewer .dl{position:absolute;top:calc(10px + env(safe-area-inset-top));left:14px}
+.ov{position:fixed;inset:0;z-index:110;display:none}.ov.show{display:block}
+.menu{position:fixed;z-index:120;display:none;background:#251d30;border:1px solid #ffffff22;border-radius:16px;padding:6px;min-width:160px;box-shadow:0 10px 40px #0009}
+.menu.show{display:block}
+.menu button{display:block;width:100%;padding:11px 13px;border-radius:10px;text-align:left}
+.menu button:active{background:#ffffff15} .menu .del{color:var(--bad)}
+.modal{position:fixed;inset:0;z-index:200;background:#00000080;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal .box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 20px;max-width:340px;width:100%;text-align:center}
+.modal h2{margin:10px 0 6px;font-size:20px} .modal p{color:var(--mut);margin:0 0 18px}
+.btns{display:flex;gap:10px}.btns button{flex:1;padding:12px;border-radius:14px;font-weight:650;color:#fff}
+.no{background:var(--card2)} .red{background:var(--bad)} .green{background:var(--ok)}
+#grid{display:none;gap:10px;margin-bottom:16px}
+#grid video{width:100%;height:180px;object-fit:cover;background:#000;border-radius:14px}
+.thread{position:fixed;inset:0;z-index:90;background:var(--bg);display:none;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.thread.show{display:flex}
+.cm{margin-top:12px;padding-left:10px;border-left:2px solid var(--line)}
+.cm button{color:var(--mut);padding:2px 0;margin-right:10px}
+.pk{flex:1;font-size:12px;color:var(--mut)}
+.pk select option{background:var(--card2);color:var(--txt)}
+.pk select{width:100%;height:42px;margin-top:4px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;outline:none}
+.pk input{height:38px;padding:2px;margin-top:4px;border-radius:10px}
+.b{position:relative}
+.msgs{overflow-x:hidden}
+.stk{position:absolute;pointer-events:none;max-width:none;z-index:2}
+.pv .stk{pointer-events:auto;cursor:grab;touch-action:none}
+/* ===== 8. FEED, LOGIN, TOAST ===== */
+.act{display:flex;gap:8px}
+.act button{display:flex;gap:6px;align-items:center;margin-top:10px;padding:6px 12px;border-radius:18px;background:var(--card2);color:var(--mut)}
+.act button.on{color:var(--bad)} .act button.on svg{fill:var(--bad)}
+.auth{max-width:420px;margin:auto;padding:8vh 22px}
+.logo{font-size:46px;font-weight:700;letter-spacing:-2px} .logo b{color:var(--acc)}
+.logo img{width:84px;height:84px;border-radius:20px;object-fit:cover;display:block}
+.seg{display:flex;background:var(--card2);border-radius:14px;padding:4px;margin:16px 0 10px}
+.seg button{flex:1;padding:10px;border-radius:11px;color:var(--mut)} .seg .on{background:var(--bg);color:var(--txt)}
+.auth input{margin-bottom:10px} .err{color:var(--bad);min-height:20px;font-size:14px}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#2b2433;padding:11px 16px;border-radius:14px;opacity:0;pointer-events:none;transition:.25s;z-index:300;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+/* upload bar (top): blue while uploading, red on fail, then slides away */
+.up{position:fixed;top:0;left:0;right:0;z-index:400;padding:calc(env(safe-area-inset-top) + 8px) 14px 0;background:var(--card);border-bottom:1px solid var(--line);transform:translateY(-110%);transition:transform .25s,background .25s;font-size:13px;pointer-events:none}
+.up.show{transform:none} .up.bad{background:var(--bad);color:#fff}
+.upt{padding-bottom:7px} .upb{height:4px;background:#ffffff25;margin:0 -14px}
+.upf{height:100%;width:0;background:var(--acc);transition:width .15s} .up.bad .upf{background:#fff} .up.ok .upf{background:var(--ok)}
+/* ===== 9. CHAT BACKGROUND + BUBBLE OFFERS ===== */
+.btn:disabled{opacity:.55}
+.mw{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+.mw .msgs{position:relative;z-index:1;min-height:0}
+.cbg{position:absolute;inset:0;overflow:hidden;z-index:0}
+.bgimg{position:absolute;max-width:none;height:auto;transform:translate(-50%,-50%);pointer-events:none;-webkit-user-drag:none;user-select:none}
+.bgdim{position:absolute;inset:0}
+.bgpvw{position:sticky;top:0;z-index:5;background:var(--card);padding-bottom:10px}
+.bgpv{position:relative;overflow:hidden;margin:0 auto;border-radius:16px;border:1px solid var(--line);background:var(--bg)}
+.bgpv.dg{touch-action:none;cursor:grab}
+.pvm{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:10px 12px;overflow:hidden;pointer-events:none}
+.pvm .mr{zoom:.66}
+.pvm{gap:6px}
+.bp{position:relative;width:fit-content;max-width:86%;white-space:pre-wrap;overflow-wrap:anywhere}
+.bo{display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px}
+.linklike{border:0;background:none;color:inherit;padding:0;font:inherit;text-align:left;cursor:pointer}.linklike:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<div class="up" id="up"><div class="upt" id="upt"></div><div class="upb"><div class="upf" id="upf"></div></div></div>
+
+<!-- full-screen media viewer -->
+<div class="viewer" id="viewer"><button class="btn sm dl" data-act="dl">Download</button><button class="ib x" data-act="closeview">✕</button><div id="vc"></div></div>
+<!-- GIF store -->
+<div class="gif-store" id="gifStore">
+  <div class="gif-head"><button class="ib" data-act="gifClose">‹</button><h2>GIFs</h2><span class="mut small">GIPHY</span></div>
+  <div class="gif-search"><input id="gifQuery" placeholder="Search GIFs…" autocomplete="off"></div>
+  <div class="gif-results" id="gifResults"><div class="gif-note">Loading trending GIFs…</div></div>
+</div>
+<!-- discussion thread -->
+<div class="thread" id="th"></div>
+<!-- friend profile / chat background -->
+<div class="thread" id="fp"></div>
+<!-- save or discard chat background -->
+<div class="modal" id="sm"><div class="box"><h2>Save background?</h2><p>You changed this chat's background.</p><div class="btns"><button class="no" data-act="fpdiscard">Discard</button><button style="background:var(--acc)" data-act="fpsave">Save</button></div></div></div>
+<!-- send bubble to... -->
+<div class="modal" id="pm"><div class="box" style="text-align:left"><h2 style="text-align:center">Send bubble to</h2><div id="pl" style="max-height:52dvh;overflow:auto;margin-bottom:14px"></div><button class="btn soft full" data-act="pclose">Cancel</button></div></div>
+<!-- share a private Moment with exactly one chat-list friend -->
+<div class="modal" id="msm"><div class="box" style="text-align:left"><h2 style="text-align:center">Share privately with</h2><div id="msl" style="max-height:52dvh;overflow:auto;margin-bottom:14px"></div><button class="btn soft full" data-act="msclose">Cancel</button></div></div>
+<!-- long-press menu -->
+<div class="ov" id="ov" data-act="closemenu"></div>
+<div class="menu" id="menu"><button data-act="reply">↩ Reply</button><button data-act="copy">📋 Copy</button><button data-act="dl" id="mdl">⬇ Download</button><button class="del" data-act="del" id="mdel">⌫ Delete</button></div>
+<!-- delete box -->
+<div class="modal" id="dm"><div class="box"><h2 id="dh">Delete for both?</h2><p id="dp">This can't be undone.</p><div class="btns"><button class="no" data-act="dno">No</button><button class="red" data-act="dyes">Yes</button></div></div></div>
+<!-- call box -->
+<div class="modal" id="cm" style="z-index:250;background:#08070cf8"><div class="box"><div id="cav"></div><h2 id="ct">Call</h2><p id="cs"></p>
+  <div id="grid"><video id="rv" autoplay playsinline></video><video id="lv" autoplay playsinline muted></video></div>
+  <div class="btns" id="cin"><button class="red" data-act="cdecline">Decline</button><button class="green" data-act="canswer">Answer</button></div>
+  <div class="btns" id="cact"><button class="red" data-act="cend">End call</button></div></div></div>
+
+<script type="module">
+/* ===== CONFIG ===== */
+const CONFIG={
+  firebase:{apiKey:"AIzaSyAi27biKcUGvCB4kXsXEdgeq85JLBb7a_Y",authDomain:"library-a60e3.firebaseapp.com",databaseURL:"https://library-a60e3-default-rtdb.firebaseio.com",projectId:"library-a60e3",storageBucket:"library-a60e3.firebasestorage.app",messagingSenderId:"933820691428",appId:"1:933820691428:web:25dcddcfc078ac910acdf1"},
+  cloudinary:{cloudName:"dwf9uonlj",uploadPreset:"our_chat"},
+  giphy:{apiKey:"XUf2d17b2OhjnrmsVcUDUi1MxoFCplFp"},
+  push:{url:"https://waexrkwpoeualglkntjs.supabase.co/functions/v1/dynamic-handler"},  /* Supabase edge function */
+  ice:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},{urls:["turn:openrelay.metered.ca:80","turn:openrelay.metered.ca:443?transport=tcp"],username:"openrelayproject",credential:"openrelayproject"}]
+};
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,updateProfile} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getDatabase,ref,set,get,push,update,remove,onValue,onChildAdded,onDisconnect,query,limitToLast,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+const fb=initializeApp(CONFIG.firebase),auth=getAuth(fb),db=getDatabase(fb);
+let srvOff=0;onValue(ref(db,".info/serverTimeOffset"),s=>{srvOff=s.val()||0});
+const sNow=()=>Date.now()+srvOff;  /* server-aligned clock, so phones with a wrong clock still agree on call age */
+
+/* ===== HELPERS ===== */
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const IC={chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',heart:'<path d="M12 21s-7-4.4-9.3-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.3 12C19 16.6 12 21 12 21z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',clip:'<path d="M21 12l-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/>',back:'<path d="M15 5l-7 7 7 7"/>',file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',vid:'<rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10l6-3v10l-6-3z"/>',share:'<path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>'};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24">${IC[n]}</svg>`;
+/* ===== APP ICON: lives in Firebase (appIcon = image URL), downloaded once, cached on the phone. Not bundled in the app. ===== */
+let ICON=null,iconOff=null;try{ICON=localStorage.getItem("iconData")}catch{}
+const LOGO=()=>ICON?`<img src="${ICON}" alt="Us">`:'U<b>s</b>';
+function applyIcon(){
+  if(!ICON)return;
+  $("#fav").href=ICON;$("#touch").href=ICON;
+  const l=$(".logo");if(l)l.innerHTML=LOGO();
+}
+async function loadIcon(url){
+  try{
+    if(ICON&&localStorage.getItem("iconUrl")===url)return;  /* same icon already saved: no download */
+    const b=await (await fetch(url)).blob();
+    const d=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(b)});
+    ICON=d;try{localStorage.setItem("iconData",d);localStorage.setItem("iconUrl",url)}catch{}
+    applyIcon();
+  }catch{}
+}
+function iconWatch(){
+  if(iconOff)return;
+  iconOff=onValue(ref(db,"appIcon"),s=>{const v=s.val(),u=typeof v==="string"?v:v?.url;if(u)loadIcon(u)},()=>{iconOff=null});  /* if rules block it before login, retried after login */
+}
+applyIcon();iconWatch();
+const hue=n=>{let h=0;for(const c of String(n||"?"))h=(h*31+c.codePointAt(0))%360;return h};
+// All chat-facing dates use Addis Ababa time, independent of the phone's timezone.
+const CHAT_TZ="Africa/Addis_Ababa";
+const fmtT=t=>new Intl.DateTimeFormat("en",{timeZone:CHAT_TZ,hour:"numeric",minute:"2-digit"}).format(new Date(t));
+const dateKey=t=>new Intl.DateTimeFormat("en-CA",{timeZone:CHAT_TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(t));
+const when=t=>dateKey(t)===dateKey(Date.now())?fmtT(t):new Intl.DateTimeFormat("en",{timeZone:CHAT_TZ,month:"short",day:"numeric"}).format(new Date(t))+", "+fmtT(t);
+const serverTime=()=>serverTimestamp();
+const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.k);toast.k=setTimeout(()=>t.classList.remove("show"),2500)};
+const nm=u=>S.users[u]?.name||"Someone";
+const av=(u,c="")=>{const p=S.users[u]||{};return p.photo?`<span class="av ${c}"><img src="${esc(p.photo)}" alt=""></span>`:`<span class="av ${c}" style="--h:${hue(p.name)}">${esc((p.name||"?")[0].toUpperCase())}</span>`};
+const cidOf=(a,b)=>[a,b].sort().join("_");
+const kindOf=m=>{
+  if(!m.url)return "msg";
+  if(m.type==="gif"||m.gifProvider==="giphy"||m.url.includes("giphy.com/media/"))return "gif";
+  const t=String(m.mime||"").toLowerCase().split(";")[0],u=String(m.url||"").toLowerCase();
+  const fmt=String(m.format||"").toLowerCase();
+  // Audio MIME/extensions take priority over Cloudinary's resource_type (audio can be stored as "video").
+  if(t.startsWith("audio/")||m.type==="audio"||["mp3","m4a","aac","ogg","wav","flac","opus"].includes(fmt)||/\\.(mp3|m4a|aac|ogg|wav|flac|opus)(\\?|$)/.test(u))return "audio";
+  if(t.startsWith("image/")||m.type==="image"||m.type==="image_upload"||["jpg","jpeg","png","gif","webp","avif","bmp"].includes(fmt)||/\\.(png|jpe?g|gif|webp|avif)(\\?|$)/.test(u)||u.includes("/image/upload/"))return "image";
+  if(t.startsWith("video/")||m.type==="video"||["mp4","mov","webm","m4v","mkv"].includes(fmt)||u.includes("/video/upload/")||/\\.(mp4|mov|webm|m4v)(\\?|$)/.test(u))return "video";
+  if(t==="application/pdf"||/\\.pdf(\\?|$)/.test(u))return "pdf";
+  if(t.startsWith("text/"))return "txt";
+  return "file";
+};
+/* ===== UPLOAD: Cloudinary, 6 MB chunks for big files, live progress bar on top, red + auto-hide on failure ===== */
+const CHUNK=6*1024*1024;let upT=0;
+function upBar(txt,pct,state){
+  const b=$("#up");clearTimeout(upT);b.className="up show"+(state?" "+state:"");
+  $("#upt").textContent=txt;$("#upf").style.width=pct+"%";
+  if(state)upT=setTimeout(()=>b.classList.remove("show"),state==="bad"?3500:700);
+}
+const xhrSend=(body,headers,onProg)=>new Promise((ok,no)=>{
+  const x=new XMLHttpRequest();x.open("POST",`https://api.cloudinary.com/v1_1/${CONFIG.cloudinary.cloudName}/auto/upload`);
+  for(const k in headers)x.setRequestHeader(k,headers[k]);
+  x.upload.onprogress=e=>{if(e.lengthComputable)onProg(e.loaded)};
+  x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch{}x.status>=200&&x.status<300?ok(j):no(new Error(j.error?.message||"Upload failed ("+x.status+")"))};
+  x.onerror=()=>no(new Error("Network error"));x.ontimeout=()=>no(new Error("Timed out"));
+  x.send(body);
+});
+async function upload(file){
+  const name=file.name||"file",short="file",total=file.size,n=Math.max(1,Math.ceil(total/CHUNK)),id=Date.now()+"-"+Math.random().toString(36).slice(2);
+  let j;
+  try{
+    upBar("Uploading "+short+" 0%",0);
+    for(let i=0;i<n;i++){
+      const s=i*CHUNK,e=Math.min(total,s+CHUNK),len=e-s;
+      for(let tr=0;;tr++){  /* each part retries twice before giving up */
+        const f=new FormData();f.append("file",n>1?file.slice(s,e):file,name);f.append("upload_preset",CONFIG.cloudinary.uploadPreset);
+        const h=n>1?{"X-Unique-Upload-Id":id,"Content-Range":`bytes ${s}-${e-1}/${total}`}:{};
+        try{
+          j=await xhrSend(f,h,l=>{const p=Math.min(99,(s+Math.min(l,len))/total*100);upBar(`Uploading ${short} ${Math.round(p)}%`+(n>1?` · part ${i+1}/${n}`:""),p)});
+          break;
+        }catch(err){
+          if(tr>=2)throw err;
+          upBar(`Retrying ${short} · part ${i+1}/${n}`,s/total*100);await new Promise(r=>setTimeout(r,1200*(tr+1)));
+        }
+      }
+    }
+    if(!j?.secure_url)throw new Error(j?.error?.message||"Upload failed");
+    upBar("Uploaded "+short,100,"ok");
+    const mime=(file.type||"").toLowerCase();
+    const type=mime.startsWith("audio/")?"audio":mime.startsWith("image/")?"image":mime.startsWith("video/")?"video":(j.resource_type||"raw");
+    return {url:j.secure_url,type,mime:file.type||"",format:j.format||"",name:file.name||j.original_filename||"file"};
+  }catch(err){upBar("Upload failed: "+(err.message||"error"),100,"bad");throw err}
+}
+const MIME_EXT={
+  "image/jpeg":"JPG","image/jpg":"JPG","image/png":"PNG","image/gif":"GIF",
+  "image/webp":"WEBP","image/avif":"AVIF","image/bmp":"BMP","image/svg+xml":"SVG",
+  "video/mp4":"MP4","video/webm":"WEBM","video/quicktime":"MOV","video/x-matroska":"MKV",
+  "audio/mpeg":"MP3","audio/mp4":"M4A","audio/aac":"AAC","audio/ogg":"OGG",
+  "audio/wav":"WAV","audio/webm":"WEBM","application/pdf":"PDF"
+};
+function fileExt(m){
+  if(!m)return "FILE";
+  if(m.type==="gif"||m.gifProvider==="giphy"||String(m.url||"").includes("giphy.com/media/"))return "GIF";
+  const mime=String(m.mime||"").toLowerCase().split(";")[0];
+  if(MIME_EXT[mime])return MIME_EXT[mime];
+  const fmt=String(m.format||"").replace(/[^a-z0-9]/gi,"").toUpperCase();
+  if(fmt)return fmt;
+  const path=String(m.url||"").split("?")[0],match=path.match(/\.([a-z0-9]{2,5})$/i);
+  if(match)return match[1].toUpperCase();
+  if(m.type==="image")return "IMAGE";
+  if(m.type==="video")return "VIDEO";
+  if(m.type==="audio")return "AUDIO";
+  return "FILE";
+}
+async function download(m){
+  if(!m?.url){toast("File unavailable");return}
+  const ext=fileExt(m),name="download."+ext.toLowerCase(),url=String(m.url).trim();
+  if(!url){toast("File unavailable");return}
+
+  // Native Android DownloadManager, when the app's NativeCall bridge provides it.
+  if(NC&&typeof NC.download==="function"){
+    try{
+      await NC.download({url,name,mime:m.mime||"application/octet-stream"});
+      toast("Downloading "+ext);
+      return;
+    }catch(e){console.warn("Native download failed:",e)}
+  }
+
+  // Do not navigate to Cloudinary's fl_attachment transformation: Android WebView
+  // can reject its attachment response as ERR_INVALID_RESPONSE.
+  try{
+    const response=await fetch(url,{mode:"cors"});
+    if(!response.ok)throw new Error("Download failed ("+response.status+")");
+    const blob=await response.blob(),objectUrl=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=objectUrl;a.download=name;a.style.display="none";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+    toast("Downloading "+ext);
+    return;
+  }catch(e){console.warn("Blob download failed:",e)}
+
+  // Last resort: open the original asset URL so it can be saved from the browser.
+  try{
+    const browser=CAP?.Plugins?.Browser;
+    if(NAT&&browser?.open)await browser.open({url});
+    else{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";a.style.display="none";document.body.appendChild(a);a.click();a.remove()}
+    toast("Opened file — use your browser's Save option");
+  }catch(e){
+    console.error("Download failed:",e);
+    toast("Could not download this file");
+  }
+}
+
+/* ===== STATE: S.chat = uid of open chat, S.page = chats | feed | me, S.reply = message being replied to ===== */
+const S={me:null,mode:"in",page:"chats",chat:null,q:"",users:{},chats:{},reads:{},posts:[],likes:{},msgs:[],pf:null,reply:null,menu:null,inc:null,mom:{},th:null,cr:null,pdel:null,shareMomentId:null,set:{},bub:{},bto:{},aud:"all",feedTab:"shared"};
+const isUnread=(c,v)=>v.by!==S.me.uid&&v.t>(S.reads[c]||0);
+const msgOf=id=>S.msgs.find(m=>m.id===id)||allMoments().find(m=>m.id===id);
+
+/* ===== LIVE DATA ===== */
+let offs=[],offMsgs=()=>{},momOffs={};
+function syncMoms(){if(S.page!=="feed")return;Object.keys(S.chats).forEach(c=>{if(!momOffs[c])momOffs[c]=onValue(ref(db,"moments/"+c),s=>{S.mom[c]=s.val()||{};fill()})})}
+const watch=(path,fn,q)=>{const r=ref(db,path);offs.push(onValue(q?q(r):r,s=>{fn(s.val()||{});fill()}))};
+onAuthStateChanged(auth,u=>{
+  offs.forEach(f=>f());offs=[];offMsgs();endCall(true);Object.values(momOffs).forEach(f=>f());momOffs={};S.mom={};S.th=null;$("#th").classList.remove("show");$("#fp").classList.remove("show");$("#pm").classList.remove("show");$("#msm").classList.remove("show");$("#sm").classList.remove("show");S.fp=null;S.me=u;S.chat=null;S.reply=null;
+  if(u){
+    update(ref(db,"users/"+u.uid),{name:u.displayName||u.email.split("@")[0]});
+    try{if(!localStorage.getItem("permAsked")){localStorage.setItem("permAsked","1");askPerms()}}catch{}
+    initPush();iconWatch();setTimeout(()=>{openPend();openPendMoment()},1200);
+    watch("users",v=>S.users=v);
+    watch("userChats/"+u.uid,v=>{S.chats=v;syncMoms()});
+    watch("reads/"+u.uid,v=>S.reads=v);
+    watch("likes",v=>S.likes=v);
+    watch("settings/"+u.uid,v=>S.set=v);
+    watch("bubbles",v=>S.bub=v);
+    watch("bubblesTo/"+u.uid,v=>S.bto=v);
+    watch("posts",v=>S.posts=Object.entries(v).map(([id,p])=>({id,...p})).sort((a,b)=>b.t-a.t),r=>query(r,limitToLast(50)));
+    watch("incoming/"+u.uid,v=>{
+      const fresh=v.cid&&(!v.t||sNow()-v.t<60000);  /* a ring older than 60s is a dead call: drop it */
+      if(v.cid&&!fresh)remove(ref(db,"incoming/"+u.uid)).catch(()=>{});
+      S.inc=fresh?v:null;
+      if(S.inc&&!pc){peer=v.from;callUI(nm(v.from),(v.video?"Video":"Voice")+" call…","in");runAuto()}
+      else if(!S.inc){ncCancel();if(!pc)$("#cm").classList.remove("show")}  /* always clear the ringing notification, also after answering */
+    });
+  }
+  draw();nativePoll();
+});
+function openChat(uid){
+  if(uid===S.me.uid)return;
+  S.chat=uid;setPresence(uid);S.msgs=[];S.reply=null;const cid=cidOf(S.me.uid,uid);
+  offMsgs=onValue(query(ref(db,`chats/${cid}/msgs`),limitToLast(100)),s=>{
+    S.msgs=Object.entries(s.val()||{}).map(([id,m])=>({id,...m})).sort((a,b)=>a.t-b.t);
+    set(ref(db,`reads/${S.me.uid}/${cid}`),Date.now());fill();
+  });
+  draw();
+}
+async function send(m){
+  const me=S.me.uid,cid=cidOf(me,S.chat),t=serverTime(),to=S.chat;
+  if(S.reply){m.reply=S.reply;S.reply=null;rbar()}
+  await push(ref(db,`chats/${cid}/msgs`),{...m,from:me,t});
+  if(m.url)await push(ref(db,`moments/${cid}`),{uid:me,sharedWith:to,visibility:"private",url:m.url,mime:m.mime||"",type:m.type||"",format:m.format||"",t});
+  const kind=kindOf(m);
+  // Chat list shows the media format only, never the original filename.
+  const ext=fileExt(m);
+  const last=m.text||(kind==="gif"?"GIF":["image","video","audio"].includes(kind)?ext:kind==="pdf"?"PDF":kind==="txt"?"TXT":ext);
+  await update(ref(db),{[`userChats/${me}/${cid}`]:{with:S.chat,last,t,by:me},[`userChats/${S.chat}/${cid}`]:{with:me,last,t,by:me}});
+  // Only real uploaded photos/videos get notification thumbnails. Never pass a GIPHY URL as a photo.
+  const notificationText=last;
+  notifyPeer(to,"msg",notificationText,cid,["video","image"].includes(kind)?m.url:false);}
+
+/* ===== GIPHY GIF PICKER =====
+   Create a beta API key at https://developers.giphy.com/dashboard/ and put it in CONFIG.giphy.apiKey.
+   Beta keys allow 100 API calls per hour. Keep the key restricted/monitored; a key in frontend code is visible.
+*/
+let gifSearchTimer=0,gifLastQuery="",gifRequestSeq=0;
+async function giphyRequest(path,query=""){
+  const p=new URLSearchParams({api_key:CONFIG.giphy.apiKey,limit:"24",rating:"pg-13",lang:"en"});
+  if(query)p.set("q",query);
+  const r=await fetch(`https://api.giphy.com/v1/gifs/${path}?${p}`);
+  if(!r.ok)throw new Error("GIPHY unavailable ("+r.status+")");
+  return r.json();
+}
+function gifUrlOf(item){
+  const images=item.images||{};
+  return images.original?.url||images.downsized_medium?.url||images.fixed_width?.url||"";
+}
+function gifPreviewOf(item){
+  const images=item.images||{};
+  return images.fixed_width_small?.url||images.preview_gif?.url||images.downsized_small?.url||gifUrlOf(item);
+}
+function drawGifResults(items){
+  const el=$("#gifResults");if(!el)return;
+  const usable=(items||[]).filter(x=>gifUrlOf(x));
+  el.innerHTML=usable.map((g,i)=>`<button type="button" data-act="gifSend" data-index="${i}" aria-label="Send GIF"><img src="${esc(gifPreviewOf(g)||gifUrlOf(g))}" alt="GIF" loading="lazy"></button>`).join("")||'<div class="gif-note">No GIFs found. Try another search.</div>';
+  S.gifItems=usable;
+}
+async function loadGifs(query=""){
+  const el=$("#gifResults");if(!el)return;
+  if(CONFIG.giphy.apiKey==="YOUR_GIPHY_API_KEY"){el.innerHTML='<div class="gif-note">Add your GIPHY API key in CONFIG.giphy.apiKey to load GIFs.</div>';return}
+  const seq=++gifRequestSeq;
+  el.innerHTML='<div class="gif-note">Loading GIFs…</div>';
+  try{
+    const data=await giphyRequest(query?"search":"trending",query);
+    if(seq!==gifRequestSeq)return;
+    drawGifResults(data.data||[]);
+  }catch(e){if(seq===gifRequestSeq)el.innerHTML=`<div class="gif-note">${esc(e.message||"Could not load GIFs")}</div>`}
+}
+function openGifStore(){
+  if(!S.chat)return;
+  $("#gifStore").classList.add("show");
+  $("#gifQuery").value="";
+  gifLastQuery="";
+  loadGifs("");
+}
+function closeGifStore(){$("#gifStore").classList.remove("show");clearTimeout(gifSearchTimer)}
+async function sendGif(item){
+  const url=gifUrlOf(item);
+  if(!url)return;
+  const preview=gifPreviewOf(item)||url;
+  try{
+    await send({type:"gif",url,mime:"image/gif",name:"GIF",gifProvider:"giphy",gifId:item.id||"",preview});
+    closeGifStore();
+  }catch(e){toast("Could not send GIF: "+(e.message||e))}
+}
+
+/* ===== SCREENS (HTML) ===== */
+/* ===== BUBBLE STYLES: DEF = defaults. c1/c2 = gradient colors, tx = text color, r = roundness ===== */
+const DEF={mine:{c1:"#5b6eae",c2:"#7289da",tx:"#ffffff"},theirs:{c1:"#1d1628",c2:"#1d1628",tx:"#f5f0f8"},r:18};
+/* incoming styles come from other people: only plain hex colors, bounded numbers and Cloudinary images get through */
+const HEX=/^#[0-9a-f]{6}$/i,num=(v,a,b,d)=>{v=+v;return Number.isFinite(v)?Math.max(a,Math.min(b,v)):d};
+const cleanB=x=>{
+  if(!x||typeof x!=="object")return null;
+  const o={c1:HEX.test(x.c1)?x.c1:DEF.mine.c1,c2:HEX.test(x.c2)?x.c2:DEF.mine.c2,tx:HEX.test(x.tx)?x.tx:"#ffffff",pl:num(x.pl,0,40,13),pr:num(x.pr,0,40,13),r:num(x.r,4,26,DEF.r)};
+  if(typeof x.img==="string"&&x.img.startsWith("https://res.cloudinary.com/")){o.img=x.img;o.ix=num(x.ix,0,100,50);o.iy=num(x.iy,0,100,50);o.is=num(x.is,10,140,40);o.ir=num(x.ir,-180,180,0)}
+  return o;
+};
+/* publish my bubble instantly: bubbles/<myuid> is readable by everyone, no accepting */
+const pub=()=>{const st=S.set||{},p=ref(db,"bubbles/"+S.me.uid);return st.mine||st.r!=null?set(p,{...(st.mine||DEF.mine),r:st.r??DEF.r}):remove(p)};
+/* audience: S.aud = "all" (Everyone) or one chat partner's uid. Each has its own bubble:
+   Everyone -> settings/me/mine (+ r), published to bubbles/me.  One person -> settings/me/only/uid (r inside), published to bubblesTo/uid/me */
+const audOk=()=>S.aud!=="all"&&Object.values(S.chats).some(c=>c.with===S.aud);
+const getG=g=>g==="mine"&&audOk()?(S.set.only?.[S.aud]||{...(S.set.mine||DEF.mine),r:S.set.r??DEF.r}):(S.set[g]||DEF[g]);
+const setLocal=(g,x)=>{if(g==="mine"&&audOk())S.set.only={...(S.set.only||{}),[S.aud]:x};else S.set[g]=x};
+const sendOnly=u=>{const x=S.set.only?.[u];if(x){update(ref(db,`settings/${S.me.uid}/only`),{[u]:x});set(ref(db,`bubblesTo/${u}/${S.me.uid}`),x)}};
+const putG=(g,x)=>{  /* save + go live now */
+  const u=g==="mine"&&audOk()?S.aud:0;setLocal(g,x);
+  if(u)sendOnly(u);else{update(ref(db,"settings/"+S.me.uid),{[g]:x});if(g==="mine")pub()}
+};
+const keep=f=>{const v=$(".view"),y=v?v.scrollTop:0;f();const n=$(".view");if(n)n.scrollTop=y};  /* redraw without jumping to the top */
+let bsT,bsP=null,bsK="";
+const flushB=()=>{clearTimeout(bsT);const f=bsP;bsP=null;f&&f()};
+const saveB=g=>{  /* debounced save while dragging sliders */
+  const u=g==="mine"&&audOk()?S.aud:0,k=u||g;if(bsP&&bsK!==k)flushB();bsK=k;clearTimeout(bsT);
+  bsP=()=>{if(u)sendOnly(u);else{update(ref(db,"settings/"+S.me.uid),{[g]:S.set[g]});pub()}};
+  bsT=setTimeout(flushB,400);
+};
+const bstyle=(s,r,me)=>`background:linear-gradient(135deg,${s.c1},${s.c2});color:${s.tx};border-radius:${r}px ${r}px ${me?"6px":r+"px"} ${me?r+"px":"6px"};padding:9px ${s.pr??13}px 9px ${s.pl??13}px`;
+const bubOf=from=>{  /* [style, roundness, isMine]. Sender's bubble made just for me (bubblesTo) > their Everyone bubble (bubbles) > my "their messages" style */
+  const st=S.set||{},me=from===S.me.uid,f=!me&&cleanB(S.bto[from]||S.bub[from]);
+  return me?[st.mine||DEF.mine,st.r??DEF.r,1]:f?[f,f.r??DEF.r,0]:[DEF.theirs,st.r??DEF.r,0];
+};
+const bubStyle=from=>bstyle(...bubOf(from));
+/* the PNG on a bubble: ix/iy = position in %, is = width in px, ir = rotation in degrees */
+const stkHTML=(s,g)=>s&&s.img?`<img class="stk" ${g?`data-g="${g}"`:""} src="${esc(s.img)}" alt="" style="left:${s.ix??50}%;top:${s.iy??50}%;width:${s.is??40}px;transform:translate(-50%,-50%) rotate(${s.ir??0}deg)">`:"";
+const bubPrev=()=>{
+  const st=S.set||{},r=st.r??DEF.r,t=DEF.theirs,m=getG("mine"),rm=audOk()?m.r??DEF.r:r;
+  $("#bprev").innerHTML=`<div class="mr"><div class="b" style="${bstyle(t,r,0)}">Hey, how are you?${stkHTML(t,"theirs")}</div></div><div class="mr me" style="margin:8px 0 14px"><div class="b me" style="${bstyle(m,rm,1)}">Great, you?${stkHTML(m,"mine")}</div></div>`;
+};
+const bubSettings=()=>{
+  const st=S.set||{},ao=audOk(),r=ao?getG("mine").r??DEF.r:st.r??DEF.r;
+  const ppl=[...new Set(Object.values(S.chats).map(c=>c.with))];
+  const pick=(g,f,l,v)=>`<label class="pk">${l}<input type="color" data-bs="${g}.${f}" value="${v}"></label>`;
+  const sl=(g,f,l,a,b,v)=>`<label class="pk" style="display:block;margin-top:8px">${l}<input type="range" min="${a}" max="${b}" value="${v}" data-bs="${g}.${f}"></label>`;
+  const grp=(g,l,s)=>`<b class="small" style="display:block;margin-top:16px">${l}</b><div class="row">${pick(g,"c1","From",s.c1)}${pick(g,"c2","To",s.c2)}${pick(g,"tx","Text",s.tx)}</div>
+    ${sl(g,"pl","Space before text",0,40,s.pl??13)}${sl(g,"pr","Space after text",0,40,s.pr??13)}
+    <div class="row" style="margin-top:10px"><button class="btn soft sm" data-act="bpng" data-g="${g}">${s.img?"Change PNG":"Add PNG"}</button>${s.img?`<button class="btn soft sm" data-act="bpngx" data-g="${g}">Remove PNG</button>`:""}</div>
+    ${s.img?sl(g,"is","PNG size",10,140,s.is??40)+sl(g,"ir","PNG rotation",-180,180,s.ir??0)+'<div class="small mut" style="margin-top:6px">Drag the PNG in the preview to place it anywhere</div>':""}`;
+  return `<div class="card" style="text-align:left;margin-top:20px"><h3 style="margin:0 0 12px">Chat bubbles</h3><div id="bprev" class="pv"></div>
+  <label class="pk" style="display:block;margin-top:16px">Who sees this bubble<select id="baud"><option value="all">Everyone</option>${ppl.map(u=>`<option value="${u}"${ao&&S.aud===u?" selected":""}>Only ${esc(nm(u))}${st.only?.[u]?" ✓":""}</option>`).join("")}</select></label>
+  ${grp("mine","My messages",getG("mine"))}
+  <label class="pk" style="display:block;margin-top:16px">Roundness<input type="range" min="4" max="26" value="${r}" data-bs="${ao?"mine.r":"r"}"></label>
+  ${ao?`<div class="row" style="margin-top:12px;flex-wrap:wrap">${S.bto[S.aud]||S.bub[S.aud]?'<button class="btn soft sm" data-act="guseth">Use their bubble</button>':""}<button class="btn soft sm" data-act="bonlyx">Remove this bubble</button></div>`:'<button class="btn soft sm" style="margin-top:12px" data-act="bsreset">Reset all</button>'}<input type="file" id="bpngf" accept="image/png" hidden></div>
+  <div class="card" style="text-align:left"><h3 style="margin:0 0 12px">Gallery</h3><button class="btn sm" data-act="gsave">Save to gallery</button><div id="bgal" style="margin-top:8px"></div></div>`;
+};
+const galHTML=()=>{
+  const g=Object.entries((S.set||{}).gallery||{}).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
+  return g.map(([id,x])=>`<div class="item" style="cursor:default"><div class="grow"><div class="mr"><div class="b" style="${bstyle(x,x.r??DEF.r,1)}">Great, you?${stkHTML(x)}</div></div></div><div class="col" style="display:flex;flex-direction:column;gap:6px"><button class="btn sm" data-act="gpick" data-id="${id}">Send</button><button class="btn soft sm" data-act="guse" data-id="${id}">Mine</button></div><button class="ib" data-act="gdel" data-id="${id}">${ic("trash")}</button></div>`).join("")||'<div class="hint" style="padding:12px">Nothing saved yet</div>';
+};
+const lbl=r=>r.text||{image:"Photo",video:"Video",audio:"Voice note",gif:"GIF"}[r.kind]||(r.url?fileExt(r):"File");
+const rth=r=>{
+  const u=esc(r.url||"");if(!u)return"";
+  if(r.kind==="image")return `<img class="rth" src="${u}" alt="">`;
+  if(r.kind==="video")return `<video class="rth" src="${u}#t=0.1" preload="metadata" muted playsinline></video>`;
+  return `<span class="rth ico">${r.kind==="audio"?"🎤":"📄"}</span>`;
+};
+const vpHTML=(m,big)=>`<div class="vp paused" data-act="vptoggle" data-id="${m.id}"><video src="${esc(m.url)}#t=0.1" preload="metadata" playsinline></video><span class="vpplay"><span>▶</span></span><div class="vpbar"><div class="vptrack"><div class="vpfill"></div></div></div></div>`;
+const pickHTML=()=>{
+  const ppl=[...new Set(Object.values(S.chats).map(c=>c.with))];
+  if(!ppl.length)return '<div class="hint" style="padding:16px">No chats yet</div>';
+  return `<div class="item" data-act="bsend" data-u="all"><span class="av sm" style="--h:260">🌐</span><div class="grow"><b>Everyone</b><div class="mut small">${ppl.length} chat${ppl.length===1?"":"s"}</div></div></div>`+ppl.map(u=>`<div class="item" data-act="bsend" data-u="${u}">${av(u,"sm")}<b class="grow ell">${esc(nm(u))}</b></div>`).join("");
+};
+async function sendBubble(to,st){
+  const me=S.me.uid,cid=cidOf(me,to),t=serverTime(),last="🎨 Bubble";
+  await push(ref(db,`chats/${cid}/msgs`),{bub:st,name:"Bubble",from:me,t});
+  await update(ref(db),{[`userChats/${me}/${cid}`]:{with:to,last,t,by:me},[`userChats/${to}/${cid}`]:{with:me,last,t,by:me}});
+  notifyPeer(to,"msg","🎨 Sent you a bubble",cid);
+}
+const sigB=b=>JSON.stringify(cleanB(b)).toLowerCase();
+const isMineB=b=>sigB(b)===sigB({...(S.set.mine||DEF.mine),r:S.set.r??DEF.r});  /* is this bubble my current one? */
+const offerHTML=m=>{
+  const me=m.from===S.me.uid,s=cleanB(m.bub)||DEF.mine,done=!me&&isMineB(s);
+  return `<div class="mr ${me?"me":""}" data-id="${m.id}"><div class="b media"><div class="bo"><div class="small mut">🎨 ${me?"You sent a bubble":esc(nm(m.from))+" sent you a bubble"}</div><div class="bp" style="${bstyle(s,s.r??DEF.r,me?1:0)}">Hey, how are you?${stkHTML(s)}</div>${me?"":`<button class="btn sm${done?" soft":""}" data-act="bacc" data-id="${m.id}"${done?" disabled":""}>${done?"Accepted ✓":"Accept"}</button>`}</div></div><div class="mt">${fmtT(m.t)}</div></div>`;
+};
+const fmtD=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+const callHTML=m=>{
+  const c=m.call||{},me=m.from===S.me.uid,v=c.video?"Video":"Voice",ico=c.video?"📹":"📞";
+  const T={
+    started:[ico,v+" call started","cok"],
+    ended:[ico,v+" call ended"+(c.dur?" · "+fmtD(c.dur):""),""],
+    declined:["📵",me?"Call declined":"You declined the call","cbad"],
+    missed:["📵",me?"No answer":"Missed "+v.toLowerCase()+" call","cbad"],
+    cancelled:["📵",me?"Call cancelled":"Missed "+v.toLowerCase()+" call","cbad"]
+  }[c.kind]||[ico,"Call",""];
+  return `<div class="mr cx" data-id="${m.id}"><div class="cxp ${T[2]}"><span class="cxi">${T[0]}</span><span class="cxt">${esc(T[1])}</span><span class="cxs">${fmtT(m.t)}</span></div></div>`;
+};
+const audioPlayerHTML=(m,u)=>`<div class="ap" data-audio-player>
+  <audio class="ap-audio" preload="metadata" src="${u}"></audio>
+  <div class="ap-top">
+    <button class="ap-play" type="button" data-act="audioToggle" aria-label="Play or pause">▶</button>
+    <span class="ap-current">0:00</span>
+    <input class="ap-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek audio">
+    <span class="ap-duration">--:--</span>
+    <button class="ap-speed" type="button" data-act="audioSpeed">1×</button>
+  </div>
+</div>`;
+const msgHTML=m=>{
+  if(m.momentId){const own=m.from===S.me.uid,thumb=m.thumbnailUrl||m.momentUrl||m.url||"";return `<div class="mr ${own?"me":""}" data-id="${m.id}"><div class="b ${own?"me":""}">${thumb?`<img src="${esc(thumb)}" alt="Moment preview" loading="lazy" style="display:block;width:min(220px,65vw);max-height:150px;object-fit:cover;border-radius:12px;margin-bottom:9px">`:""}<div>${esc(m.text||"A Moment was shared with you")}</div><button class="btn soft sm" style="margin-top:8px" data-act="openSharedMoment" data-id="${esc(m.momentId)}">Open Moment</button></div><div class="mt">${fmtT(m.t)}</div></div>`}
+  if(m.call)return callHTML(m);
+  if(m.bub)return offerHTML(m);
+  const k=kindOf(m),u=esc(m.url||""),me=m.from===S.me.uid,md=m.url&&!m.text&&!m.reply?" media":"";let b="";
+  if(m.reply)b+=`<div class="rq" data-act="jump" data-id="${esc(m.reply.id)}">${rth(m.reply)}<div class="rqt"><b>${esc(nm(m.reply.from))}</b> ${esc(lbl(m.reply))}</div></div>`;
+  if(k==="gif")b+=`<img class="pic" style="width:auto;max-width:min(78vw,300px);max-height:300px;object-fit:contain" src="${u}" loading="lazy" alt="GIF" data-act="gifView" data-id="${m.id}">`;
+  else if(k==="image")b+=`<img class="pic" src="${u}" loading="lazy" data-act="view" data-id="${m.id}">`;
+  else if(k==="video")b+=vpHTML(m);
+  else if(k==="audio")b+=audioPlayerHTML(m,u);
+  else if(k!=="msg")b+=`<div class="fc" data-act="view" data-id="${m.id}">${ic("file")}<span class="ell">${esc(fileExt(m))}</span></div>`;
+  if(k==="image"||k==="video")b+=`<div style="font-size:11px;opacity:.7;margin-top:4px">${esc(fileExt(m))}</div>`;
+  return `<div class="mr ${me?"me":""}" data-id="${m.id}"><div class="b ${me?"me":""}${md}"${md?"":` style="${bubStyle(m.from)}"`}>${b}${esc(m.text||"")}${md?"":stkHTML(bubOf(m.from)[0])}</div><div class="mt">${fmtT(m.t)}</div></div>`;
+};
+const rowHTML=(uid,sub,t,pip,cid)=>`<div class="item" data-act="open" data-uid="${uid}"${cid?` data-cid="${esc(cid)}"`:""}>${av(uid)}<div class="grow"><b class="ell">${esc(nm(uid))}</b><div class="mut small ell">${esc(sub)}</div></div>${t?`<span class="mut small">${when(t)}</span>`:""}${pip?'<i class="pip"></i>':""}</div>`;
+const listHTML=()=>{
+  if(S.q)return Object.keys(S.users).filter(u=>u!==S.me.uid&&nm(u).toLowerCase().includes(S.q)).map(u=>rowHTML(u,S.users[u]?.bio||"Tap to chat")).join("")||'<div class="hint">No one found</div>';
+  return Object.entries(S.chats).sort((a,b)=>b[1].t-a[1].t).map(([c,v])=>rowHTML(v.with||c.split("_").find(x=>x&&x!==S.me.uid)||"",v.last||"",v.t,isUnread(c,v),c)).join("")||'<div class="hint">No chats yet. Search for someone above 👆</div>';
+};
+const mpath=m=>m.cid?`moments/${m.cid}/${m.id}`:`posts/${m.id}`;
+const friendIds=()=>[...new Set(Object.values(S.chats).map(c=>c.with).filter(u=>u&&u!==S.me?.uid))];
+const allMoments=()=>[
+  ...S.posts.map(p=>({...p,cid:"",url:p.url||p.img||"",mime:p.mime||(p.img?"image/*":"")})),
+  ...Object.entries(S.mom).flatMap(([cid,o])=>Object.entries(o).map(([id,m])=>({id,cid,...m})))
+].filter(m=>m.uid===S.me?.uid||friendIds().includes(m.uid)).sort((a,b)=>(b.t||0)-(a.t||0));
+const visibleMoments=()=>{
+  const ms=allMoments(),friends=friendIds();
+  if(S.feedTab==="shared")return ms.filter(m=>!!m.cid);
+  if(S.feedTab==="mine")return ms.filter(m=>!m.cid&&m.public===true&&m.uid===S.me.uid);
+  if(S.feedTab==="friends")return ms.filter(m=>!m.cid&&m.public===true&&m.uid!==S.me.uid&&friends.includes(m.uid));
+  return [];
+};
+const likesFor=m=>m.cid?(m.likes||{}):(m.likes||S.likes[m.id]||{});
+const momentHTML=(m,inThread)=>{
+  const k=kindOf(m),u=esc(m.url||""),n=Object.keys(likesFor(m)),nc=Object.keys(m.comments||{}).length;
+  const peer=m.cid?m.cid.split("_").find(x=>x&&x!==m.uid):"";
+  const media=k==="gif"?`<img class="pic" style="width:auto;max-width:100%;max-height:320px;object-fit:contain" src="${u}" loading="lazy" alt="GIF">`:k==="image"?`<img class="pic" src="${u}" loading="lazy" data-act="view" data-id="${m.id}">`:k==="video"?vpHTML(m):k==="audio"?audioPlayerHTML(m,u):k!=="msg"?`<div class="fc" data-act="view" data-id="${m.id}">${ic("file")}<span class="ell">${esc(fileExt(m))}</span></div>`:"";
+  const where=m.cid?`Shared privately with <button class="linklike" data-act="thread" data-id="${m.id}">${esc(nm(peer))}</button>`:(m.public?"Public · shared with your chat-list friends":"Shared publicly");
+  return `<div class="card"><div class="row">${av(m.uid,"sm")}<div class="grow"><button class="linklike" data-act="thread" data-id="${m.id}"><b>${esc(nm(m.uid))}</b></button><div class="mut small">${when(m.t)} · ${where}</div></div>${m.uid===S.me.uid?`<button class="ib" data-act="pdel" data-id="${m.id}">${ic("trash")}</button>`:""}</div>${m.text?`<p style="white-space:pre-wrap">${esc(m.text)}</p>`:""}${media?`<div style="margin-top:10px">${media}</div>`:""}${inThread?"":`<div class="act"><button class="${n.includes(S.me.uid)?"on":""}" data-act="like" data-id="${m.id}">${ic("heart")}${n.length}</button><button data-act="thread" data-id="${m.id}">${ic("chat")}${nc}</button>${m.uid===S.me.uid&&m.cid?`<button data-act="shareMoment" data-id="${m.id}">${ic("share")} Share</button>`:""}</div>`}</div>`;
+};
+const profCard=()=>S.editProf
+  ?`<div class="card" style="text-align:left"><label class="small mut" style="display:block;margin-bottom:6px">Username</label><input id="unm" maxlength="24" value="${esc(nm(S.me.uid))}"><label class="small mut" style="display:block;margin:12px 0 6px">Bio</label><textarea id="ubio" rows="3" maxlength="160" placeholder="Tell people about you">${esc(S.users[S.me.uid]?.bio||"")}</textarea><div class="row" style="margin-top:12px"><button class="btn sm" data-act="saveprof">Save</button><button class="btn soft sm" data-act="cancelprof">Cancel</button></div></div>`
+  :`<div class="card" style="text-align:left"><div class="small mut">Username</div><div style="margin-top:4px">${esc(nm(S.me.uid))}</div><div class="small mut" style="margin-top:12px">Bio</div><div style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${S.users[S.me.uid]?.bio?esc(S.users[S.me.uid].bio):'<span class="mut">No bio yet</span>'}</div><button class="btn sm" style="margin-top:12px" data-act="editprof">Edit profile</button></div>`;
+function draw(){
+  if(!S.me){
+    const up=S.mode==="up";
+    app.innerHTML=`<div class="auth"><div class="logo">${LOGO()}</div><div class="mut">Chat with anyone.</div>
+    <div class="seg"><button class="${up?"":"on"}" data-act="mode" data-m="in">Log in</button><button class="${up?"on":""}" data-act="mode" data-m="up">Sign up</button></div>
+    ${up?'<input id="nm" placeholder="Your name" autocomplete="name">':""}<input id="em" type="email" placeholder="Email" autocomplete="email"><input id="pw" type="password" placeholder="Password (6+ chars)" autocomplete="current-password">
+    <div class="err" id="err"></div><button class="btn full" data-act="auth">${up?"Create account":"Log in"}</button></div>`;
+    return;
+  }
+  if(S.chat){
+    app.innerHTML=`<div class="top"><button class="ib" data-act="back">${ic("back")}</button><div class="row grow" data-act="fprof" style="gap:10px;cursor:pointer">${av(S.chat,"sm")}<div class="grow"><h1 class="ell">${esc(nm(S.chat))}</h1>${S.users[S.chat]?.bio?`<div class="mut small ell">${esc(S.users[S.chat].bio)}</div>`:""}</div></div><button class="ib" data-act="call" data-v="0">${ic("phone")}</button><button class="ib" data-act="call" data-v="1">${ic("vid")}</button></div>
+    <div class="mw"><div class="cbg" id="cbg"></div><div class="msgs" id="msgs"></div></div><div id="rb"></div>
+    <div class="composer"><button class="ib" data-act="attach">${ic("clip")}</button><input id="txt" placeholder="Message" autocomplete="off"><button class="ib" id="gifBtn" data-act="gifOpen" aria-label="Open GIF store">GIF</button><button class="ib" id="mic" data-act="mic">${ic("mic")}</button><button class="ib acc" data-act="send">${ic("send")}</button></div><input type="file" id="file" hidden>`;
+    rbar();fill();setTimeout(updateGifButton,80);return;
+  }
+  const pages={
+    chats:`<div class="pad"><input id="q" placeholder="Search people…" value="${esc(S.q)}"><div id="list"></div></div>`,
+    feed:`<div class="pad"><div class="seg" style="margin-bottom:12px"><button class="${S.feedTab==="shared"?"on":""}" data-act="feedtab" data-tab="shared">Shared</button><button class="${S.feedTab==="mine"?"on":""}" data-act="feedtab" data-tab="mine">Mine</button><button class="${S.feedTab==="friends"?"on":""}" data-act="feedtab" data-tab="friends">Friends</button></div><div class="card"><textarea id="ptxt" rows="2" placeholder="Share a public Moment with your chat-list friends…"></textarea><div class="mut small" style="margin:6px 0">Everyone in your chat list gets a notification. No chat messages are sent.</div><div class="row" style="margin-top:10px"><button class="btn soft sm" data-act="pickimg">${ic("clip")} Photo</button><span class="mut small grow ell" id="pname"></span><button class="btn sm" data-act="post">Share publicly</button></div></div><div id="feed"></div></div><input type="file" id="pfile" accept="image/*" hidden>`,
+    me:`<div class="pad center"><div data-act="avatar" style="display:inline-block;margin-top:20px">${av(S.me.uid,"big")}</div><h2>${esc(nm(S.me.uid))}</h2><div class="mut small">${esc(S.me.email)}</div><p class="mut small">Tap the photo to change it</p>
+    ${profCard()}
+    <button class="btn soft" data-act="logout">Log out</button>${bubSettings()}</div><input type="file" id="afile" accept="image/*" hidden>`
+  };
+  const titles={chats:"Chats",feed:"Moments",me:"Profile"};
+  const tabs=[["chats","chat"],["feed","heart"],["me","user"]].map(([k,i])=>`<button class="${S.page===k?"on":""}" data-act="nav" data-p="${k}">${ic(i)}${titles[k]}${k==="chats"?'<span class="badge" id="bdg" hidden></span>':""}</button>`).join("");
+  app.innerHTML=`<div class="top"><h1>${titles[S.page]}</h1></div><div class="view">${pages[S.page]}</div><nav class="nav">${tabs}</nav>`;
+  fill();
+}
+/* fill() refreshes only the live parts, so typing never gets interrupted */
+function fill(){
+  if(!S.me)return;
+  const b=$("#bdg");if(b){const n=Object.entries(S.chats).filter(([c,v])=>isUnread(c,v)).length;b.hidden=!n;b.textContent=n}
+  if($("#bprev"))bubPrev();
+  if($("#bgal"))$("#bgal").innerHTML=galHTML();
+  const m=$("#msgs");
+  if(m){const sig=S.msgs.length+":"+(S.msgs.at(-1)?.id||"")+":"+JSON.stringify([S.bto[S.chat]||0,S.bub[S.chat]||0,S.set.mine||0,S.set.theirs||0,S.set.r||0]);if(m.dataset.sig!==sig){m.dataset.sig=sig;const end=m.scrollHeight-m.scrollTop-m.clientHeight<80;m.innerHTML=S.msgs.map(msgHTML).join("")||'<div class="hint">Say hi 👋</div>';if(end)m.scrollTop=m.scrollHeight}}
+  applyBg();
+  if($("#list"))$("#list").innerHTML=listHTML();
+  if($("#feed")){
+    const ms=visibleMoments(),f=$("#feed"),sg=S.feedTab+":"+ms.map(m=>m.id+":"+Object.keys(likesFor(m)).length+":"+Object.keys(m.comments||{}).length).join()+Object.keys(S.users).length;
+    if(f.dataset.sig!==sg){f.dataset.sig=sg;f.innerHTML=ms.map(m=>momentHTML(m)).join("")||`<div class="hint">${S.feedTab==="mine"?"You have not shared any Moments yet.":S.feedTab==="friends"?"Your friends have not shared any Moments yet.":"No Moments yet. Send a file in a chat or share one publicly."}</div>`}
+  }
+  thFill();
+}
+const rbar=()=>{const r=$("#rb");if(r)r.innerHTML=S.reply?`<div class="rp">${rth(S.reply)}<div class="grow ell"><b>${esc(nm(S.reply.from))}</b><div class="mut ell">${esc(lbl(S.reply))}</div></div><button class="ib" data-act="noreply">✕</button></div>`:""};
+
+const startReply=m=>{S.reply={id:m.id,from:m.from,text:m.text||"",kind:kindOf(m),url:m.url||"",name:m.name||""};rbar();$("#txt")?.focus();navigator.vibrate?.(15)};
+
+/* ===== DISCUSSION THREAD: comments under a moment, nested as deep as you like ===== */
+function openThread(id){
+  const m=allMoments().find(x=>x.id===id);if(!m)return;S.th=id;S.cr=null;
+  $("#th").innerHTML=`<div class="top"><button class="ib" data-act="thclose">${ic("back")}</button><h1>Discussion</h1></div><div class="view"><div class="pad"><div id="thh">${momentHTML(m,true)}</div><div id="thl"></div></div></div><div id="thr"></div><div class="composer"><input id="thi" placeholder="Write a reply…" autocomplete="off"><button class="ib acc" data-act="thsend">${ic("send")}</button></div>`;
+  $("#th").classList.add("show");thFill();
+}
+function thFill(){
+  const el=$("#thl");if(!el||!S.th)return;
+  const m=allMoments().find(x=>x.id===S.th);
+  if(!m){A.thclose();toast("This moment was deleted");return}
+  const cs=Object.entries(m.comments||{}).map(([id,c])=>({id,...c})).sort((a,b)=>a.t-b.t),kids={};
+  cs.forEach(c=>(kids[c.parent||""]??=[]).push(c));
+  const node=(c,d)=>`<div class="cm" style="margin-left:${Math.min(d,5)*14}px"><div class="row" style="align-items:flex-start">${av(c.uid,"sm")}<div class="grow"><b>${esc(nm(c.uid))}</b> <span class="mut small">${when(c.t)}</span><div style="white-space:pre-wrap">${esc(c.text)}</div><div class="small"><button data-act="cr" data-id="${c.id}">Reply</button>${c.uid===S.me.uid?` <button data-act="cdel" data-id="${c.id}">Delete</button>`:""}</div></div></div></div>${(kids[c.id]||[]).map(k=>node(k,d+1)).join("")}`;
+  el.innerHTML=`<h3 class="mut">Discussion</h3>${(kids[""]||[]).map(c=>node(c,0)).join("")||'<div class="hint">No replies yet</div>'}`;
+}
+const thBar=()=>{
+  const el=$("#thr");if(!el)return;
+  const m=allMoments().find(x=>x.id===S.th),c=S.cr&&m?.comments?.[S.cr];
+  el.innerHTML=c?`<div class="rp"><div class="grow ell">Replying to <b>${esc(nm(c.uid))}</b>: ${esc(c.text)}</div><button class="ib" data-act="crx">✕</button></div>`:"";
+};
+
+/* ===== CHAT BACKGROUND (per friend, only I see it): settings/<me>/bg/<friend> = {mode,c1,c2,ang,img,x,y,z,dim} ===== */
+const cleanBg=c=>{
+  if(!c||typeof c!=="object"||!["color","grad","img"].includes(c.mode))return null;
+  const o={mode:c.mode,c1:HEX.test(c.c1)?c.c1:"#0b0811",c2:HEX.test(c.c2)?c.c2:"#2a1747",ang:num(c.ang,0,360,160),x:num(c.x,-50,150,50),y:num(c.y,-50,150,50),z:num(c.z,10,400,100),dim:num(c.dim,0,85,0)};
+  if(c.mode==="img"){if(typeof c.img==="string"&&c.img.startsWith("https://res.cloudinary.com/"))o.img=c.img;else o.mode="color"}
+  return o;
+};
+function bgApply(el,c){
+  if(!el)return;
+  const st=!c?"":c.mode==="grad"?`background:linear-gradient(${c.ang}deg,${c.c1},${c.c2})`:`background:${c.c1}`;
+  el.setAttribute("style",st);
+  const im=el.querySelector(".bgimg");
+  if(c?.mode==="img"){
+    if(im&&im.getAttribute("src")===c.img){im.style.left=c.x+"%";im.style.top=c.y+"%";im.style.width=c.z+"%";el.querySelector(".bgdim").style.background=`rgba(0,0,0,${c.dim/100})`}
+    else el.innerHTML=`<img class="bgimg" src="${esc(c.img)}" alt="" style="left:${c.x}%;top:${c.y}%;width:${c.z}%"><div class="bgdim" style="background:rgba(0,0,0,${c.dim/100})"></div>`;
+  }else el.innerHTML="";
+}
+function applyBg(){  /* the real chat */
+  const el=$("#cbg");if(!el||!S.chat)return;
+  const c=S.set.bg?.[S.chat],sig=JSON.stringify(c||0);
+  if(el.dataset.sig===sig)return;el.dataset.sig=sig;bgApply(el,cleanBg(c));
+}
+function bgPrev(){  /* the preview: same engine, my real bubbles */
+  const d=S.bgd,l=$("#bgl"),m=$("#bgm");if(!d||!l||!m)return;
+  bgApply(l,cleanBg(d));
+  $("#bgprev").classList.toggle("dg",d.mode==="img"&&!!d.img);
+  const them=bubOf(S.fp),mine=bubOf(S.me.uid);
+  const row=(b,t,me)=>`<div class="mr ${me?"me":""}"><div class="bp" style="${bstyle(...b)}">${t}${stkHTML(b[0])}</div></div>`;
+  const h=row(them,"Hey, how are you?",0)+row(mine,"Great, you?",1)+row(them,"Send me a photo 📷",0)+row(mine,"Here 😄",1);
+  if(m.dataset.h!==h){m.dataset.h=h;m.innerHTML=h}
+}
+function bgRender(){
+  const d=S.bgd,el=$("#bgctl");if(!d||!el)return;const m=d.mode;
+  const seg=[["none","None"],["color","Color"],["grad","Gradient"],["img","Image"]].map(([k,l])=>`<button class="${m===k?"on":""}" data-act="bgmode" data-m="${k}">${l}</button>`).join("");
+  const pick=(f,l)=>`<label class="pk">${l}<input type="color" data-bg="${f}" value="${d[f]}"></label>`;
+  const sl=(f,l,a,b)=>`<label class="pk" style="display:block;margin-top:8px">${l}<input type="range" min="${a}" max="${b}" value="${d[f]}" data-bg="${f}"></label>`;
+  let h=`<div class="seg" style="margin:6px 0 4px">${seg}</div>`;
+  if(m==="color")h+=`<div class="row">${pick("c1","Color")}</div>`;
+  if(m==="grad")h+=`<div class="row">${pick("c1","From")}${pick("c2","To")}</div>${sl("ang","Angle",0,360)}`;
+  if(m==="img")h+=`<div class="row" style="margin-top:8px"><button class="btn soft sm" data-act="bgup">${d.img?"Change image":"Upload image"}</button>${d.img?'<button class="btn soft sm" data-act="bgcenter">Center</button>':""}</div><div class="row" style="margin-top:8px">${pick("c1","Behind image")}</div>${d.img?sl("z","Size",10,400)+sl("dim","Darken",0,85)+'<div class="small mut" style="margin-top:8px">Drag the preview to place the image</div>':""}`;
+  h+=`<div class="row" style="margin-top:16px"><button class="btn sm" data-act="bgsave">Save</button>${S.set.bg?.[S.fp]?'<button class="btn soft sm" data-act="bgreset">Remove background</button>':""}</div><input type="file" id="bgf" accept="image/*" hidden>`;
+  el.innerHTML=h;bgPrev();
+}
+function openFP(){
+  const u=S.chat;if(!u)return;S.fp=u;
+  S.bgd=cleanBg(S.set.bg?.[u])||{mode:"none",c1:"#0b0811",c2:"#2a1747",ang:160,x:50,y:50,z:100,dim:0};
+  const r=$("#msgs")?.getBoundingClientRect();S.ar=+(r&&r.height>80?Math.max(.4,Math.min(1.2,r.width/r.height)):.6).toFixed(3);  /* preview has the same shape as the real chat area */
+  $("#fp").innerHTML=`<div class="top"><button class="ib" data-act="fpback">${ic("back")}</button><h1 class="ell">Chat background</h1></div>
+  <div class="view"><div class="pad">
+  <div class="card" style="text-align:left">
+  <div class="bgpvw"><div class="bgpv" id="bgprev" style="aspect-ratio:${S.ar};width:min(100%,calc(56dvh*${S.ar}))"><div class="cbg" id="bgl"></div><div class="pvm" id="bgm"></div></div></div>
+  <div id="bgctl"></div></div></div></div>`;
+  $("#fp").classList.add("show");bgRender();
+}
+
+/* ===== PERMISSIONS: the first login asks Android for microphone + camera (Capacitor shows the system dialogs) ===== */
+async function askPerms(){
+  for(const c of [{audio:true},{video:true}]){try{(await navigator.mediaDevices.getUserMedia(c)).getTracks().forEach(t=>t.stop())}catch{}}
+}
+/* ===== PUSH: Capacitor PushNotifications -> FCM. Tokens + sending go through the Supabase edge function "notify" (Firebase ID token in Authorization) ===== */
+const CAP=window.Capacitor,NAT=!!CAP&&(CAP.isNativePlatform?CAP.isNativePlatform():CAP.isNative);
+const PN=NAT?(CAP.Plugins?.PushNotifications||CAP.registerPlugin?.("PushNotifications")):null;
+let myTok=null,pend=null,pendMoment=null,pnReady=false;
+const fn=async b=>{
+  const t=await auth.currentUser.getIdToken();
+  return await fetch(CONFIG.push.url,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+t
+    },
+    body:JSON.stringify(b)
+  });
+};
+const dbg=m=>{try{console.log("Push:",m)}catch{}};  /* was alert(): a blocking dialog froze the app when answering a call from the notification */
+async function initPush(){
+  dbg("cap="+!!CAP+" native="+NAT+" plugin="+!!PN);
+  if(!PN)return;
+  try{
+    if(!pnReady){pnReady=true;
+      
+PN.addListener("registration",async t=>{
+  myTok=t.value;
+  dbg("FCM token received");
+
+  try{
+    const r=await fn({action:"register",token:myTok});
+const data=await r.json();
+dbg("Registration: "+JSON.stringify(data));
+  }catch(e){
+    dbg("Supabase error: "+(e?.message||e));
+  }
+});
+
+PN.addListener("registrationError",e=>{
+  dbg("FCM registration error: "+(e?.message||JSON.stringify(e)));
+});
+      PN.addListener("pushNotificationActionPerformed",a=>{
+        const d=a.notification?.data||{};
+        if(d.momentId){pendMoment=d;openPendMoment();return}
+        const f=d.fromUid||d.from;if(f){pend=f;openPend()}
+      });
+      await PN.createChannel?.({id:"messages",name:"Messages",importance:4,vibration:true});
+      await PN.createChannel?.({id:"calls",name:"Calls",importance:5,vibration:true});
+    }
+    let p=await PN.checkPermissions();if(p.receive==="prompt"||p.receive==="prompt-with-rationale")p=await PN.requestPermissions();
+    if(p.receive==="granted")await PN.register();else dbg("permission "+p.receive);
+  }catch(e){dbg("error "+(e?.message||e))}
+}
+async function unregPush(){
+  setPresence(null);
+  if(!PN||!myTok)return;
+  await Promise.race([fn({action:"unregister",token:myTok}),new Promise(r=>setTimeout(r,2500))]);
+  try{await PN.unregister?.()}catch{}
+  myTok=null;
+}
+/* call notification buttons: native (MainActivity) stores "answer:<uid>" / "decline:<uid>"; we pick it up (polling for a few seconds, the page may still be loading) and act on the incoming call */
+const NC=NAT?CAP.registerPlugin?.("NativeCall"):null;let autoAct=null,autoT=0,nTick=null;
+const ncCancel=()=>{try{const p=NC?.cancel?.();p&&p.catch&&p.catch(()=>{})}catch{}};  /* removes the ringing call notification */
+async function nativeCall(){
+  if(!NC||!S.me)return;
+  try{const r=await NC.take();if(!r?.v)return;
+    const a=r.v.split(":")[0];if(a!=="answer"&&a!=="decline")return;
+    autoAct=a;autoT=Date.now();toast(a==="answer"?"Answering…":"Declining…");runAuto()
+  }catch(e){toast("Native call: "+(e?.message||e))}
+}
+async function runAuto(){
+  if(!autoAct||pc||!S.me)return;
+  if(Date.now()-autoT>15000){autoAct=null;toast("Call ended");return}
+  let i=S.inc;
+  if(!i){try{const v=(await get(ref(db,"incoming/"+S.me.uid))).val();if(v&&v.cid)i=v}catch{}}
+  if(!i||autoAct==null||pc)return;  /* not there yet: the poll / the incoming watch tries again */
+  const a=autoAct;autoAct=null;S.inc=i;peer=i.from;
+  if(a==="answer")answerCall();else A.cdecline();
+}
+function nativePoll(){clearInterval(nTick);let n=0;nTick=setInterval(()=>{nativeCall();runAuto();if(++n>16)clearInterval(nTick)},900);nativeCall()}
+window.addEventListener("nativecall",nativePoll);document.addEventListener("visibilitychange",()=>{if(!document.hidden)nativePoll()});
+function openPend(){if(pend&&S.me){const u=pend;pend=null;openChat(u)}}  /* ordinary message notification -> open that chat */
+async function openMomentFromNotification(d){
+  const id=String(d?.momentId||"");if(!id||!S.me)return;
+  const cid=String(d.momentChatId||((d.momentKind==="private")?d.chatId||"":""));
+  try{
+    const path=cid?`moments/${cid}/${id}`:`posts/${id}`;
+    const snap=await get(ref(db,path)),value=snap.val();
+    if(!value){toast("This Moment is no longer available");return}
+    if(cid)S.mom[cid]={...(S.mom[cid]||{}),[id]:value};
+    else S.posts=[...S.posts.filter(x=>x.id!==id),{id,...value}];
+    S.page="feed";S.chat=null;setPresence(null);draw();
+    setTimeout(()=>openThread(id),80);
+  }catch(e){console.error("Could not open notified Moment:",e);toast("Could not open this Moment")}
+}
+function openPendMoment(){if(pendMoment&&S.me){const d=pendMoment;pendMoment=null;openMomentFromNotification(d)}}
+/* presence: which chat I have open (only while the app is visible), so the sender skips the push */
+function setPresence(to){if(!S.me)return;const r=ref(db,"presence/"+S.me.uid);if(to&&!document.hidden){set(r,{chat:to}).catch(()=>{});onDisconnect(r).remove().catch(()=>{})}else remove(r).catch(()=>{})}
+document.addEventListener("visibilitychange",()=>setPresence(S.chat));
+
+
+async function notifyPeer(to,type,body,chatId,video=false,extra={}){
+
+  try{
+    const {forceNotification=false,...meta}=extra||{};
+    if(type==="msg"&&!forceNotification){
+      let open=false;
+
+      try{
+        open=(await get(ref(db,"presence/"+to))).val()?.chat===S.me.uid;
+      }catch{}
+
+      if(open)return;
+    }
+
+    let thumbnailUrl=null;
+
+    if(
+      type==="msg" &&
+      typeof video==="string" &&
+      video.startsWith("https://res.cloudinary.com/")
+    ){
+
+      // PHOTO PREVIEW
+      if(video.includes("/image/upload/")){
+        thumbnailUrl=video
+          .replace(
+            "/image/upload/",
+            "/image/upload/w_640,h_360,c_fill,q_auto,f_jpg/"
+          )
+          .replace(/\.[a-z0-9]+(\?.*)?$/i,".jpg");
+      }
+
+      // VIDEO PREVIEW
+      if(
+        video.includes("/video/upload/") &&
+        /\.(mp4|mov|webm)(\?.*)?$/i.test(video)
+      ){
+        thumbnailUrl=video
+          .replace(
+            "/video/upload/",
+            "/video/upload/so_0,w_640,h_360,c_fill,q_auto,f_jpg/"
+          )
+          .replace(/\.(mp4|mov|webm)(\?.*)?$/i,".jpg");
+      }
+    }
+
+    await fn({
+      toUid:to,
+      type,
+      title:S.users[S.me.uid]?.name||S.me.displayName||"Someone",
+      body:String(body||"").slice(0,140),
+      chatId:chatId||"",
+      fromUid:S.me.uid,
+      video:typeof video==="boolean" ? video : false,
+      ...(thumbnailUrl ? {thumbnailUrl} : {}),
+      ...meta
+    });
+
+  }catch(e){
+    console.error("Notification error:",e);
+  }
+}
+
+
+/* ===== VOICE NOTES ===== */
+
+  let rec = null;
+  
+async function mic(){
+  if(rec){
+    if(rec.state!=="inactive") rec.stop();
+    return;
+  }
+
+  let st,ctx;
+
+  try{
+    st=await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:false,
+        noiseSuppression:false,
+        autoGainControl:false,
+        channelCount:1,
+        sampleRate:48000
+      }
+    });
+
+    const types=[
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4"
+    ];
+
+    const mime=types.find(t=>MediaRecorder.isTypeSupported(t));
+
+    const opts={
+      audioBitsPerSecond:160000
+    };
+
+    if(mime) opts.mimeType=mime;
+
+    let rs=st;  /* what gets recorded */
+    try{
+      ctx=new (window.AudioContext||window.webkitAudioContext)();await ctx.resume?.();
+      const src=ctx.createMediaStreamSource(st),dest=ctx.createMediaStreamDestination();
+      const hp=ctx.createBiquadFilter();hp.type="highpass";hp.frequency.value=85;  /* removes rumble and handling thumps */
+      const warm=ctx.createBiquadFilter();warm.type="peaking";warm.frequency.value=180;warm.Q.value=.8;warm.gain.value=3;  /* body, so it sounds close instead of distant */
+      const air=ctx.createBiquadFilter();air.type="highshelf";air.frequency.value=4500;air.gain.value=2.5;  /* clarity */
+      const comp=ctx.createDynamicsCompressor();comp.threshold.value=-30;comp.knee.value=20;comp.ratio.value=3.5;comp.attack.value=.006;comp.release.value=.2;  /* evens out quiet and loud words */
+      const gain=ctx.createGain();gain.gain.value=2.4;  /* makeup volume */
+      const lim=ctx.createDynamicsCompressor();lim.threshold.value=-3;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.08;  /* no clipping */
+      src.connect(hp);hp.connect(warm);warm.connect(air);air.connect(comp);comp.connect(gain);gain.connect(lim);lim.connect(dest);
+      rs=dest.stream;
+    }catch{try{ctx?.close()}catch{}ctx=null;rs=st}  /* if WebAudio fails, record the plain mic */
+    const recorder=new MediaRecorder(rs,opts);
+    const ch=[];
+
+    rec=recorder;
+
+    recorder.ondataavailable=e=>{
+      if(e.data.size) ch.push(e.data);
+    };
+
+    recorder.onstop=async()=>{
+      st.getTracks().forEach(t=>t.stop());try{ctx?.close()}catch{}
+
+      if(rec===recorder) rec=null;
+
+      $("#mic")?.classList.remove("recording");
+
+      try{
+        if(!ch.length){
+          toast("No audio recorded");
+          return;
+        }
+
+        const type=recorder.mimeType||"audio/webm";
+        const ext=type.includes("mp4")?"m4a":"webm";
+
+        toast("Sending…");
+
+        const file=new File(
+          ch,
+          `voice.${ext}`,
+          {type}
+        );
+
+        const r=await upload(file);
+
+        await send({
+          url:r.url,
+          type:"audio",
+          mime:type,
+          format:ext,
+          name:"Voice note"
+        });
+
+      }catch(e){
+        toast(e.message);
+      }
+    };
+
+    recorder.start();  /* one continuous recording, no chunk joins */
+    $("#mic").classList.add("recording");
+
+  }catch(e){
+    st?.getTracks().forEach(t=>t.stop());try{ctx?.close()}catch{}
+    rec=null;
+    toast("Microphone blocked");
+  }
+}
+
+/* ===== CALLS (WebRTC, signalling through Firebase: calls/<chatId> and incoming/<uid>) ===== */
+let pc=null,ls=null,cid0=null,peer=null,offC=[],ringT=null,CI=null;  /* CI = info about the call in progress (only the CALLER writes call log messages) */
+async function postCall(to,c){
+  try{
+    const me=S.me.uid,cid=cidOf(me,to),t=Date.now(),last={started:"📞 Call started",ended:"📞 Call ended",declined:"📞 Call declined",missed:"📞 Missed call",cancelled:"📞 Call cancelled"}[c.kind];
+    await push(ref(db,`chats/${cid}/msgs`),{call:c,from:me,t});
+    await update(ref(db),{[`userChats/${me}/${cid}`]:{with:to,last,t,by:me},[`userChats/${to}/${cid}`]:{with:me,last,t,by:me}});
+  }catch{}
+}
+function callUI(t,s,mode){$("#ct").textContent=t;$("#cs").textContent=s;$("#cav").innerHTML=av(peer,"big");$("#cin").style.display=mode==="in"?"flex":"none";$("#cact").style.display=mode==="act"?"flex":"none";$("#cm").classList.add("show")}
+async function rtc(video){
+  ls=await navigator.mediaDevices.getUserMedia({audio:true,video:!!video});
+  pc=new RTCPeerConnection({iceServers:CONFIG.ice});ls.getTracks().forEach(t=>pc.addTrack(t,ls));
+  $("#lv").srcObject=ls;
+  pc.ontrack=e=>{$("#rv").srcObject=e.streams[0];if(video)$("#grid").style.display="grid"};
+  pc.onicecandidate=e=>e.candidate&&push(ref(db,`calls/${cid0}/ice/${S.me.uid}`),e.candidate.toJSON());
+  offC.push(onValue(ref(db,`calls/${cid0}/state`),s=>{const v=s.val();if(v==="ended"||v==="declined"){if(CI&&!CI.res)CI.res=v;endCall()}}));
+}
+const listenIce=()=>offC.push(onChildAdded(ref(db,`calls/${cid0}/ice/${peer}`),s=>pc?.addIceCandidate(s.val()).catch(()=>{})));
+async function startCall(video){
+  peer=S.chat;cid0=cidOf(S.me.uid,peer);CI={out:true,video:!!video,on:0,res:null};
+  try{
+    await remove(ref(db,"calls/"+cid0));await rtc(video);callUI(nm(peer),"Calling…","act");
+    offC.push(onValue(ref(db,`calls/${cid0}/answer`),async s=>{const a=s.val();if(a&&pc&&!pc.currentRemoteDescription){clearTimeout(ringT);await pc.setRemoteDescription(a);listenIce();callUI(nm(peer),"Connected","act");if(CI&&!CI.on){CI.on=Date.now();postCall(peer,{kind:"started",video:CI.video})}}}));
+    await pc.setLocalDescription(await pc.createOffer());
+    await update(ref(db,"calls/"+cid0),{from:S.me.uid,video:!!video,offer:{type:pc.localDescription.type,sdp:pc.localDescription.sdp},state:"ringing"});
+    await set(ref(db,"incoming/"+peer),{cid:cid0,from:S.me.uid,video:!!video,t:sNow()});
+    notifyPeer(peer,"call",(video?"Video":"Voice")+" call",cid0,video);
+    clearTimeout(ringT);ringT=setTimeout(()=>{if(pc&&cid0&&!pc.currentRemoteDescription){toast("No answer");if(CI)CI.res="missed";endCall()}},45000);  /* nobody picked up: stop ringing */
+  }catch(e){toast("Call failed: "+e.message);CI=null;endCall()}
+}
+async function answerCall(){
+  const i=S.inc;if(!i){endCall();toast("Call ended");return}  /* caller hung up a moment ago */
+  peer=i.from;cid0=i.cid;CI=null;ncCancel();
+  try{
+    await rtc(i.video);
+    await pc.setRemoteDescription((await get(ref(db,`calls/${cid0}/offer`))).val());listenIce();
+    await pc.setLocalDescription(await pc.createAnswer());
+    await update(ref(db,"calls/"+cid0),{answer:{type:pc.localDescription.type,sdp:pc.localDescription.sdp},state:"active"});
+    remove(ref(db,"incoming/"+S.me.uid));callUI(nm(peer),"Connected","act");
+  }catch(e){toast("Call failed: "+e.message);endCall()}
+}
+function endCall(quiet,state){
+  clearTimeout(ringT);ncCancel();
+  const c=cid0,ci=CI,pe=peer;cid0=null;CI=null;
+  offC.forEach(f=>f());offC=[];pc?.close();pc=null;ls?.getTracks().forEach(t=>t.stop());ls=null;
+  $("#cm").classList.remove("show");$("#grid").style.display="none";
+  if(c&&!quiet){update(ref(db,"calls/"+c),{state:state||"ended"});if(peer)remove(ref(db,"incoming/"+peer));if(S.me)remove(ref(db,"incoming/"+S.me.uid))}
+  if(c&&!quiet&&ci?.out&&pe)postCall(pe,{kind:ci.on?"ended":ci.res==="declined"?"declined":ci.res==="missed"?"missed":"cancelled",video:ci.video,dur:ci.on?Math.round((Date.now()-ci.on)/1000):0});
+}
+
+/* ===== ACTIONS: every button has data-act="name" and runs A.name ===== */
+const hideMenu=()=>{$("#menu").classList.remove("show");$("#ov").classList.remove("show")};
+function showMenu(b){
+  const id=b.closest("[data-id]").dataset.id,m=msgOf(id);if(!m)return;S.menu=id;
+  $("#mdl").style.display=m.url?"block":"none";$("#mdel").style.display=m.from===S.me.uid?"block":"none";
+  const r=b.getBoundingClientRect(),mn=$("#menu");
+  mn.style.top=Math.max(70,Math.min(r.bottom+6,innerHeight-200))+"px";mn.style.left=Math.max(8,Math.min(r.left,innerWidth-180))+"px";
+  mn.classList.add("show");$("#ov").classList.add("show");navigator.vibrate?.(20);
+}
+let lastTap=0,lastEl=null,lpHit=false;
+const askDelChat=cid=>{S.dchat=cid;S.pdel=null;const w=S.chats[cid]?.with,who=w&&S.users[w]?nm(w):"this person";$("#dh").textContent="Delete chat?";$("#dp").textContent="Every message with "+who+" is deleted for both of you. This can't be undone.";$("#dm").classList.add("show");navigator.vibrate?.(20)};
+async function delChat(cid){
+  const other=S.chats[cid]?.with||cid.split("_").find(x=>x&&x!==S.me.uid),me=S.me.uid,soft=p=>p.catch(()=>{});
+  await soft(remove(ref(db,`chats/${cid}`)));  /* the messages */
+  if(other)await soft(update(ref(db),{[`userChats/${other}/${cid}`]:null}));  /* their list entry */
+  await soft(update(ref(db),{[`calls/${cid}`]:null}));
+  try{await update(ref(db),{[`userChats/${me}/${cid}`]:null,[`reads/${me}/${cid}`]:null});toast("Chat deleted")}  /* my list entry always goes */
+  catch(e){toast("Could not delete: "+(e?.message||e))}
+}
+async function sendMomentNotice(to,momentId,momentUrl=""){
+  const text=`${nm(S.me.uid)} shared a Moment with you`;
+  await notifyPeer(to,"msg",text,"",momentUrl||false,{forceNotification:true,momentId,momentChatId:"",momentKind:"public",momentUrl:momentUrl||""});
+}
+async function publishMoment(m){
+  const friends=friendIds(),sharedTo=Object.fromEntries(friends.map(uid=>[uid,true]));
+  const data={uid:S.me.uid,text:m.text||"",img:m.url||m.img||"",url:m.url||"",mime:m.mime||"",type:m.type||"",format:m.format||"",t:Date.now(),public:true,sharedTo};
+  const r=await push(ref(db,"posts"),data),id=r.key;
+  await Promise.all(friends.map(uid=>sendMomentNotice(uid,id,data.url)));
+  toast(friends.length?`Posted publicly · notified ${friends.length} chat-list friends`:"Posted publicly. Add friends to notify them.");
+}
+
+const A={
+  mode:e=>{S.mode=e.dataset.m;draw()},
+  feedtab:e=>{S.feedTab=e.dataset.tab;const f=$("#feed");if(f)f.dataset.sig="";draw()},
+  openSharedMoment:e=>{const m=allMoments().find(x=>x.id===e.dataset.id);if(m)openThread(m.id);else toast("This Moment is no longer available")},
+  nav:e=>{S.page=e.dataset.p;if(S.page==="feed")syncMoms();draw()},
+  open:e=>{if(lpHit){lpHit=false;return}openChat(e.dataset.uid)},  /* a long press must not also open the chat */
+  back:()=>{offMsgs();S.chat=null;setPresence(null);S.reply=null;draw()},
+  attach:()=>$("#file").click(), pickimg:()=>$("#pfile").click(), avatar:()=>$("#afile").click(),
+  gifOpen:openGifStore,
+  gifClose:closeGifStore,
+  gifSend:e=>{const item=S.gifItems?.[+e.dataset.index];if(item)sendGif(item)},
+  logout:async()=>{S.editProf=false;await unregPush();signOut(auth)},
+  send:()=>{const i=$("#txt"),t=i.value.trim();if(t){i.value="";send({text:t})}},
+  mic:()=>{console.log("MIC BUTTON CLICKED");mic()},
+  audioToggle:e=>{const p=e.closest(".ap"),a=p?.querySelector("audio");if(!a)return;if(a.paused){a.play().catch(()=>toast("Can't play this audio"));}else a.pause();},
+  audioSpeed:e=>{const p=e.closest(".ap"),a=p?.querySelector("audio"),b=e;if(!a)return;const rates=[1,1.25,1.5,1.75,2,0.75];const n=rates.indexOf(a.playbackRate);a.playbackRate=rates[(n+1)%rates.length];b.textContent=a.playbackRate+"×";},
+  saveprof:async()=>{
+    const name=$("#unm").value.trim(),bio=$("#ubio").value.trim().slice(0,160);
+    if(name.length<2)return toast("Username needs at least 2 characters");
+    try{await updateProfile(auth.currentUser,{displayName:name});await update(ref(db,"users/"+S.me.uid),{name,bio});S.editProf=false;toast("Saved");draw()}catch(e){toast(e.message)}
+  },
+  editprof:()=>{S.editProf=true;draw()},
+  cancelprof:()=>{S.editProf=false;draw()},
+  bpng:e=>{S.bg=e.dataset.g;$("#bpngf").click()},
+  bpngx:e=>{const g=e.dataset.g,x={...getG(g)};["img","ix","iy","is","ir"].forEach(k=>delete x[k]);putG(g,x);keep(draw)},
+  gsave:()=>{const m=getG("mine"),x={};["c1","c2","tx","pl","pr","img","ix","iy","is","ir"].forEach(k=>{if(m[k]!=null)x[k]=m[k]});x.r=audOk()?m.r??DEF.r:S.set.r??DEF.r;x.t=Date.now();push(ref(db,`settings/${S.me.uid}/gallery`),x);toast("Saved to gallery")},
+  guse:e=>{const it=(S.set.gallery||{})[e.dataset.id];if(!it)return;const {t,r,...st}=it;
+    if(audOk())putG("mine",{...st,r:r??DEF.r});
+    else{if(r!=null){S.set.r=r;update(ref(db,"settings/"+S.me.uid),{r})}putG("mine",st)}
+    keep(draw);toast(audOk()?"Applied - "+nm(S.aud)+" now sees your messages in this bubble":"Applied - everyone now sees your messages in this bubble")},
+  guseme:e=>{const it=(S.set.gallery||{})[e.dataset.id];if(!it)return;const {t,r,...st}=it;  /* only for me: how I see THEIR messages; nothing is sent */
+    S.set.theirs=st;update(ref(db,"settings/"+S.me.uid),{theirs:st});keep(draw);toast("Using it for their messages (only you see this)")},
+  /* send a bubble offer: picker -> chat message with an Accept button */
+  gpick:e=>{S.pg=e.dataset.id;$("#pl").innerHTML=pickHTML();$("#pm").classList.add("show")},
+  pclose:()=>$("#pm").classList.remove("show"),
+  bsend:async e=>{
+    const it=(S.set.gallery||{})[S.pg],to=e.dataset.u;if(!it)return;
+    const {t:_t,...raw}=it,st=cleanB(raw);if(!st)return;
+    const ids=to==="all"?[...new Set(Object.values(S.chats).map(c=>c.with))]:[to];
+    $("#pm").classList.remove("show");
+    try{await Promise.all(ids.map(u=>sendBubble(u,st)));toast(to==="all"?"Sent to everyone":"Sent to "+nm(to))}catch(err){toast(err.message)}
+  },
+  bacc:e=>{  /* accept: the bubble becomes MY bubble for my own messages */
+    const m=msgOf(e.dataset.id),s=m&&cleanB(m.bub);if(!s||isMineB(s))return;
+    const {r,...st}=s;S.set.mine=st;S.set.r=r;
+    update(ref(db,"settings/"+S.me.uid),{mine:st,r});pub();
+    const el=$("#msgs");if(el)el.dataset.sig="";fill();  /* restyle every message in this chat right now */
+    toast("Bubble is yours now");
+  },
+  /* friend profile + chat background */
+  fprof:openFP,
+  fpback:()=>fpBack(),
+  fpdiscard:()=>{$("#sm").classList.remove("show");A.fpclose()},
+  fpsave:()=>{$("#sm").classList.remove("show");A.bgsave()},
+  fpclose:()=>{S.fp=null;S.bgd=null;$("#fp").classList.remove("show");$("#fp").innerHTML=""},
+  bgmode:e=>{S.bgd.mode=e.dataset.m;bgRender()},
+  bgup:()=>$("#bgf").click(),
+  bgcenter:()=>{S.bgd.x=50;S.bgd.y=50;bgPrev()},
+  bgsave:()=>{
+    const u=S.fp,b=S.bgd;if(!u||!b)return;
+    if(b.mode==="img"&&!b.img)return toast("Upload an image first");
+    const d=cleanBg(b);
+    if(!d){remove(ref(db,`settings/${S.me.uid}/bg/${u}`));if(S.set.bg)delete S.set.bg[u]}
+    else{update(ref(db,`settings/${S.me.uid}/bg`),{[u]:d});S.set.bg={...(S.set.bg||{}),[u]:d}}
+    A.fpclose();applyBg();toast("Background saved");
+  },
+  bgreset:()=>{const u=S.fp;remove(ref(db,`settings/${S.me.uid}/bg/${u}`));if(S.set.bg)delete S.set.bg[u];A.fpclose();applyBg();toast("Background removed")},
+  gdel:e=>remove(ref(db,`settings/${S.me.uid}/gallery/${e.dataset.id}`)),
+  guseth:()=>{if(!audOk())return;const f=cleanB(S.bto[S.aud]||S.bub[S.aud]);if(!f)return;  /* copy their bubble into MY bubble for this audience (theirs is not touched) */
+    const x={};["c1","c2","tx","pl","pr","img","ix","iy","is","ir"].forEach(k=>{if(f[k]!=null)x[k]=f[k]});x.r=f.r??DEF.r;
+    putG("mine",x);keep(draw);toast("Copied their bubble")},
+  bonlyx:()=>{if(!audOk())return;const u=S.aud,o={...(S.set.only||{})};delete o[u];S.set.only=o;remove(ref(db,`settings/${S.me.uid}/only/${u}`));remove(ref(db,`bubblesTo/${u}/${S.me.uid}`));keep(draw)},
+  bsreset:()=>{update(ref(db,"settings/"+S.me.uid),{mine:null,theirs:null,r:null});delete S.set.mine;delete S.set.theirs;delete S.set.r;pub();draw()},
+  like:e=>{const m=allMoments().find(x=>x.id===e.dataset.id);if(!m)return;const likes=likesFor(m);update(ref(db,mpath(m)+"/likes"),{[S.me.uid]:likes[S.me.uid]?null:true})},
+  post:async()=>{
+    const text=$("#ptxt").value.trim();if(!text&&!S.pf)return;
+    try{toast("Sharing publicly…");const img=S.pf?(await upload(S.pf)).url:"";await publishMoment({text,url:img});S.pf=null;draw()}catch(e){toast(e.message)}
+  },
+  shareMoment:e=>{
+    const m=allMoments().find(x=>x.id===e.dataset.id);if(!m||m.uid!==S.me.uid||!m.cid)return;
+    const friends=friendIds();if(!friends.length)return toast("You have no chat-list friends to share with");
+    S.shareMomentId=m.id;
+    $("#msl").innerHTML=friends.map(uid=>`<button class="item" style="width:100%;text-align:left" data-act="shareMomentTo" data-uid="${esc(uid)}">${av(uid)}<span class="grow"><b>${esc(nm(uid))}</b><span class="mut small" style="display:block">Share this Moment privately</span></span></button>`).join("");
+    $("#msm").classList.add("show");
+  },
+  msclose:()=>{$("#msm").classList.remove("show");S.shareMomentId=null},
+  shareMomentTo:async e=>{
+    const to=e.dataset.uid,id=S.shareMomentId,m=allMoments().find(x=>x.id===id);
+    if(!to||!m||m.uid!==S.me.uid||!m.cid)return;
+    const cid=cidOf(S.me.uid,to),data={uid:S.me.uid,sharedWith:to,visibility:"private",text:m.text||"",url:m.url||m.img||"",img:m.url||m.img||"",mime:m.mime||"",type:m.type||"",format:m.format||"",t:serverTime()};
+    try{
+      const r=await push(ref(db,`moments/${cid}`),data);
+      $("#msm").classList.remove("show");S.shareMomentId=null;
+      await notifyPeer(to,"msg",`${nm(S.me.uid)} shared a Moment with you`,cid,data.url||false,{forceNotification:true,momentId:r.key,momentChatId:cid,momentKind:"private",momentUrl:data.url||""});
+      toast("Moment shared privately with "+nm(to));
+    }catch(err){toast(err.message||"Could not share Moment")}
+  },
+  auth:async()=>{
+    const em=$("#em").value.trim(),pw=$("#pw").value,name=$("#nm")?.value.trim();
+    try{
+      if(S.mode==="up"){if(!name)throw{code:"enter your name"};const c=await createUserWithEmailAndPassword(auth,em,pw);await updateProfile(c.user,{displayName:name});await update(ref(db,"users/"+c.user.uid),{name})}
+      else await signInWithEmailAndPassword(auth,em,pw);
+    }catch(e){$("#err").textContent=String(e.code||e.message).replace("auth/","").replace(/-/g," ")}
+  },
+  /* replies + menu */
+  reply:()=>{const m=msgOf(S.menu);hideMenu();if(m)startReply(m)},
+  noreply:()=>{S.reply=null;rbar()},
+  copy:()=>{const m=msgOf(S.menu);hideMenu();navigator.clipboard?.writeText(m?.text||m?.url||"");toast("Copied")},
+  del:()=>{hideMenu();$("#dh").textContent="Delete for both?";$("#dp").textContent="This can't be undone.";$("#dm").classList.add("show")},
+  pdel:e=>{
+    const m=allMoments().find(x=>x.id===e.dataset.id);S.pdel=e.dataset.id;
+    $("#dh").textContent="Delete from Moments?";
+    $("#dp").textContent=m?.cid?"The file and its discussion are removed for both of you. Your chat keeps its copy.":"The post and its discussion disappear for everyone.";
+    $("#dm").classList.add("show");
+  },
+  thread:e=>openThread(e.dataset.id),
+  thclose:()=>{S.th=null;S.cr=null;$("#th").classList.remove("show");$("#th").innerHTML=""},
+  thsend:async()=>{
+    const i=$("#thi"),x=i.value.trim(),m=allMoments().find(y=>y.id===S.th);if(!x||!m)return;
+    i.value="";await push(ref(db,mpath(m)+"/comments"),{uid:S.me.uid,text:x,parent:S.cr||"",t:Date.now()});S.cr=null;thBar();
+  },
+  cr:e=>{S.cr=e.dataset.id;thBar();$("#thi")?.focus()},
+  crx:()=>{S.cr=null;thBar()},
+  cdel:e=>{  /* deletes this reply and everything under it */
+    const m=allMoments().find(x=>x.id===S.th),cs=m?.comments||{},out={};
+    const go=id=>{out[mpath(m)+"/comments/"+id]=null;Object.entries(cs).forEach(([k,c])=>c.parent===id&&go(k))};
+    go(e.dataset.id);update(ref(db),out);if(out[mpath(m)+"/comments/"+S.cr]===null){S.cr=null;thBar()}
+  },
+  dno:()=>{S.pdel=null;S.dchat=null;$("#dm").classList.remove("show")},
+  dyes:async()=>{
+    $("#dm").classList.remove("show");
+    if(S.dchat){const u=S.dchat;S.dchat=null;return delChat(u)}
+    if(S.pdel){
+      const id=S.pdel,m=allMoments().find(x=>x.id===id);S.pdel=null;
+      if(!m)return toast("Moment not found");
+      if(m.uid!==S.me.uid)return toast("You can only delete your own Moments");
+      try{
+        await remove(ref(db,mpath(m)));
+        await remove(ref(db,"likes/"+id));
+        S.posts=S.posts.filter(x=>x.id!==id);
+        if(m.cid&&S.mom[m.cid]){const copy={...S.mom[m.cid]};delete copy[id];S.mom[m.cid]=copy}
+        if(S.th===id){S.th=null;$("#th").classList.remove("show");$("#th").innerHTML=""}
+        const f=$("#feed");if(f)f.dataset.sig="";
+        fill();toast("Moment deleted");
+      }catch(err){console.error("Moment delete failed:",err);toast("Could not delete Moment: "+(err?.message||"Firebase permission or network error"))}
+      return;
+    }
+    remove(ref(db,`chats/${cidOf(S.me.uid,S.chat)}/msgs/${S.menu}`)).catch(e=>toast(e.message||"Could not delete message"));
+  },
+  closemenu:hideMenu,
+  /* one tap = play/pause, double tap = full screen (double tap again = back) */
+  vptoggle:(el,e)=>{
+    if(e.target.closest(".vpbar"))return;
+    const now=Date.now(),dbl=lastEl===el&&now-lastTap<300;lastEl=el;lastTap=now;
+    if(dbl){lastTap=0;return el.classList.contains("big")?A.closeview():A.vpfull(el)}
+    const v=el.querySelector("video");v.paused?v.play():v.pause();
+  },
+  vpfull:el=>{
+    const m=msgOf(el.dataset.id),old=el.closest(".vp").querySelector("video"),t=old.currentTime;old.pause();S.vm=m;
+    $("#vc").innerHTML=vpHTML(m,true);const v=$("#vc video");
+    v.addEventListener("loadedmetadata",()=>{v.currentTime=t;v.play().catch(()=>{})},{once:true});
+    $("#viewer").classList.add("show");
+  },
+  jump:e=>{const b=$(`.mr[data-id="${e.dataset.id}"] .b`);if(b){b.scrollIntoView({block:"center",behavior:"smooth"});b.classList.add("hl");setTimeout(()=>b.classList.remove("hl"),1500)}else toast("Message not found")},
+  /* viewer */
+  gifView:e=>{const m=msgOf(e.dataset.id);if(!m)return;S.vm=m;$("#vc").innerHTML=`<img src="${esc(m.url)}" alt="GIF">`;$("#viewer").classList.add("show")},
+  view:e=>{
+    const m=msgOf(e.dataset.id),k=kindOf(m),v=$("#vc");S.vm=m;
+    if(k==="image")v.innerHTML=`<img src="${esc(m.url)}">`;
+    else if(k==="pdf")v.innerHTML=`<iframe src="${esc(m.url)}"></iframe>`;
+    else if(k==="txt"){v.innerHTML='<pre>Loading…</pre>';fetch(m.url).then(r=>r.text()).then(t=>v.innerHTML="<pre>"+esc(t.slice(0,30000))+"</pre>")}
+    else return download(m);
+    $("#viewer").classList.add("show");
+  },
+  closeview:()=>{$("#viewer").classList.remove("show");$("#vc").innerHTML=""},
+  dl:()=>{const m=$("#viewer").classList.contains("show")?S.vm:msgOf(S.menu);hideMenu();if(m)download(m)},
+  /* calls */
+  call:e=>startCall(e.dataset.v==="1"),
+  canswer:answerCall,
+  cdecline:()=>{if(S.inc){cid0=S.inc.cid;peer=S.inc.from}endCall(false,"declined")},
+  cend:()=>endCall()
+};
+document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(el)A[el.dataset.act]?.(el,e)});
+document.addEventListener("input",e=>{
+  if(!e.target.matches(".ap-seek"))return;
+  const p=e.target.closest(".ap"),a=p?.querySelector("audio");
+  if(!a||!Number.isFinite(a.duration)||a.duration<=0)return;
+  a.currentTime=(Number(e.target.value)/1000)*a.duration;
+  updateAudioPlayer(p);
+});
+function audioTime(t){if(!Number.isFinite(t)||t<0)return"0:00";const m=Math.floor(t/60),sec=Math.floor(t%60);return m+":"+String(sec).padStart(2,"0")}
+function updateAudioPlayer(p){
+  const a=p?.querySelector("audio");if(!a)return;
+  const seek=p.querySelector(".ap-seek"),cur=p.querySelector(".ap-current"),dur=p.querySelector(".ap-duration"),play=p.querySelector(".ap-play");
+  const hasDuration=Number.isFinite(a.duration)&&a.duration>0;
+  const pct=hasDuration?Math.max(0,Math.min(100,(a.currentTime/a.duration)*100)):0;
+  if(seek){seek.disabled=!hasDuration;seek.value=String(Math.round(pct*10));seek.style.setProperty("--progress",pct+"%");}
+  if(cur)cur.textContent=audioTime(a.currentTime);
+  if(dur)dur.textContent=audioTime(a.duration);
+  if(play)play.textContent=a.paused?"▶":"Ⅱ";
+}
+// Media events do not bubble reliably from <audio>; capture them so every player updates.
+["loadedmetadata","durationchange","canplay","timeupdate","seeking","seeked","ended"].forEach(type=>{
+  document.addEventListener(type,e=>{if(e.target.matches?.(".ap-audio"))updateAudioPlayer(e.target.closest(".ap"))},true);
+});
+document.addEventListener("play",e=>{if(e.target.matches?.(".ap-audio")){document.querySelectorAll(".ap-audio").forEach(a=>{if(a!==e.target)a.pause()});updateAudioPlayer(e.target.closest(".ap"))}},true);
+document.addEventListener("pause",e=>{if(e.target.matches?.(".ap-audio"))updateAudioPlayer(e.target.closest(".ap"))},true);
+
+/* ===== BACK BUTTON: closes the top-most thing; leaves the app only from the home list ===== */
+const showing=q=>$(q)?.classList.contains("show");
+function fpBack(){  /* background screen: ask only if something changed */
+  const u=S.fp;if(!u||!S.bgd)return A.fpclose();
+  if(JSON.stringify(cleanBg(S.set.bg?.[u]))===JSON.stringify(cleanBg(S.bgd)))A.fpclose();else $("#sm").classList.add("show");
+}
+function goBack(){  /* true = handled something, false = already home */
+  if(showing("#cm"))return true;  /* during a call: ignore */
+  if(showing("#sm")){$("#sm").classList.remove("show");return true}
+  if(showing("#dm")){A.dno();return true}
+  if(showing("#pm")){A.pclose();return true}
+  if(showing("#menu")){hideMenu();return true}
+  if(showing("#viewer")){A.closeview();return true}  /* full-screen file -> the chat / Moments it came from */
+  if(showing("#fp")){fpBack();return true}
+  if(showing("#th")){A.thclose();return true}
+  if(S.me&&S.chat){A.back();return true}  /* chat -> home */
+  if(S.me&&S.page!=="chats"){S.page="chats";draw();return true}  /* Moments / Profile -> home */
+  return false;
+}
+window.appBack=()=>{try{return goBack()}catch{return false}};  /* the Android activity can call this: true = handled, false = at home */
+const APP=NAT?(CAP.Plugins?.App||CAP.registerPlugin?.("App")):null;
+try{APP?.addListener?.("backButton",()=>{if(!goBack())APP.exitApp?.()})?.catch?.(()=>{})}catch{}
+/* fallback when the App plugin is missing: Android back pops browser history, we catch it and put a marker back */
+const sentinel=()=>{if(!history.state?.s)history.pushState({s:1},"")};
+sentinel();document.addEventListener("click",sentinel,true);
+window.addEventListener("popstate",()=>{if(goBack())sentinel();else toast("Press back again to exit")});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="txt")A.send();if(e.key==="Enter"&&e.target.id==="thi")A.thsend()});
+/* Acode's preview may not shrink visualViewport when Android opens the keyboard.
+   Use input focus as the reliable fallback; on a phone, focusing the chat box opens the keyboard. */
+function updateGifButton(){
+  const input=$("#txt"),btn=$("#gifBtn");
+  if(!input||!btn)return;
+  const focused=document.activeElement===input;
+  const vv=window.visualViewport;
+  const viewportShrunk=!!vv && vv.height < Math.min(window.innerHeight,window.screen.height||window.innerHeight)*0.78;
+  // If the WebView reports keyboard resizing, respect it. If it does not, fall back to focus.
+  const keyboardVisible=viewportShrunk || !vv || !window.__visualViewportResizeObserved;
+  btn.classList.toggle("show",focused&&keyboardVisible);
+}
+window.__visualViewportResizeObserved=false;
+window.visualViewport?.addEventListener("resize",()=>{
+  window.__visualViewportResizeObserved=true;
+  updateGifButton();
+});
+document.addEventListener("focusin",e=>{if(e.target.id==="txt")setTimeout(updateGifButton,80)});
+document.addEventListener("focusout",e=>{if(e.target.id==="txt")setTimeout(updateGifButton,180)});
+window.visualViewport?.addEventListener("scroll",updateGifButton);
+window.addEventListener("resize",updateGifButton);
+document.addEventListener("input",e=>{
+  if(e.target.id!=="gifQuery")return;
+  clearTimeout(gifSearchTimer);
+  const q=e.target.value.trim();
+  gifSearchTimer=setTimeout(()=>{if(q===gifLastQuery)return;gifLastQuery=q;loadGifs(q)},650);
+});
+
+/* drag the PNG inside the preview bubble to move it */
+let dg=null;
+document.addEventListener("pointerdown",e=>{const k=e.target.closest("#bprev .stk");if(k){dg=k;k.setPointerCapture(e.pointerId);e.preventDefault()}});
+document.addEventListener("pointermove",e=>{
+  if(!dg)return;const r=dg.parentElement.getBoundingClientRect();
+  const x=Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y=Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100));
+  dg.style.left=x+"%";dg.style.top=y+"%";dg.dataset.x=x;dg.dataset.y=y;
+});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>{
+  if(!dg)return;const g=dg.dataset.g;
+  if(dg.dataset.x)putG(g,{...getG(g),ix:Math.round(dg.dataset.x),iy:Math.round(dg.dataset.y)});
+  dg=null;
+}));
+document.addEventListener("input",e=>{
+  const k=e.target.dataset?.bs;if(!k)return;
+  const [g,f]=k.split(".");S.set=S.set||{};
+  const v=e.target.type==="range"?+e.target.value:e.target.value;if(f)setLocal(g,{...getG(g),[f]:v});else S.set.r=v;
+  bubPrev();saveB(g);
+});
+document.addEventListener("input",e=>{const f=e.target.dataset?.bg;if(!f||!S.bgd)return;S.bgd[f]=e.target.type==="range"?+e.target.value:e.target.value;bgPrev()});
+/* drag the preview to move the background image */
+let bd=null;
+document.addEventListener("pointerdown",e=>{
+  const p=e.target.closest("#bgprev");if(!p||!S.bgd||S.bgd.mode!=="img"||!S.bgd.img)return;
+  const r=p.getBoundingClientRect();bd={sx:e.clientX,sy:e.clientY,x:S.bgd.x,y:S.bgd.y,w:r.width,h:r.height};p.setPointerCapture(e.pointerId);e.preventDefault();
+});
+document.addEventListener("pointermove",e=>{if(!bd)return;S.bgd.x=Math.round((bd.x+(e.clientX-bd.sx)/bd.w*100)*10)/10;S.bgd.y=Math.round((bd.y+(e.clientY-bd.sy)/bd.h*100)*10)/10;bgPrev()});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>{bd=null}));
+document.addEventListener("change",e=>{if(e.target.id==="baud"){flushB();S.aud=e.target.value;keep(draw)}});
+document.addEventListener("input",e=>{if(e.target.id==="q"){S.q=e.target.value.trim().toLowerCase();fill()}});
+/* long-press (or right-click) a bubble to open the menu */
+let pt;
+let sx=0,sy=0,sr=null,sd=0;
+document.addEventListener("touchstart",e=>{
+  if(e.target.closest(".vpbar"))return;
+  lpHit=false;
+  const b=e.target.closest(".b");if(b)pt=setTimeout(()=>{sr=null;showMenu(b)},450);
+  const it=!S.chat&&e.target.closest(".item[data-cid]");
+  if(it&&S.chats[it.dataset.cid]){const c=it.dataset.cid;pt=setTimeout(()=>{lpHit=true;askDelChat(c)},500)}
+  const r=e.target.closest(".mr");if(r&&!r.classList.contains("cx")&&!e.target.closest("audio")){sr=r;sx=e.touches[0].clientX;sy=e.touches[0].clientY;sd=0}
+},{passive:true});
+/* swipe a message to the right to reply */
+document.addEventListener("touchmove",e=>{if(!sr)return;const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;if(!sd&&Math.abs(dy)>Math.abs(dx)){sr=null;return}sd=Math.max(0,Math.min(dx,70));sr.style.transform=sd?`translateX(${sd}px)`:""},{passive:true});
+document.addEventListener("touchend",()=>{if(!sr)return;if(sd>=55){const m=msgOf(sr.dataset.id);if(m)startReply(m)}sr.style.transform="";sr=null},{passive:true});
+["touchend","touchmove","touchcancel"].forEach(t=>document.addEventListener(t,()=>clearTimeout(pt),{passive:true}));
+document.addEventListener("contextmenu",e=>{
+  const b=e.target.closest(".b");if(b){e.preventDefault();showMenu(b);return}
+  const it=!S.chat&&e.target.closest(".item[data-cid]");if(it&&S.chats[it.dataset.cid]){e.preventDefault();lpHit=true;askDelChat(it.dataset.cid)}
+});
+/* video player: tap = play/pause, drag the thin line to seek */
+for(const ev of["timeupdate","play","pause","ended"])document.addEventListener(ev,e=>{
+  const v=e.target;if(v.tagName!=="VIDEO")return;const p=v.closest(".vp");if(!p)return;
+  p.classList.toggle("paused",v.paused);
+  p.querySelector(".vpfill").style.width=(v.duration?v.currentTime/v.duration*100:0)+"%";
+},true);
+/* only one thing plays at a time: starting any video or voice note pauses the rest */
+document.addEventListener("play",e=>{
+  const t=e.target;if(!["VIDEO","AUDIO"].includes(t.tagName)||t.closest("#cm"))return;
+  document.querySelectorAll(".vp video,audio").forEach(o=>o!==t&&o.pause());
+},true);
+let sk=null;
+const seek=e=>{const r=sk.getBoundingClientRect(),v=sk.closest(".vp").querySelector("video");if(v.duration)v.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*v.duration};
+document.addEventListener("pointerdown",e=>{const b=e.target.closest(".vpbar");if(b){sk=b;b.setPointerCapture(e.pointerId);b.closest(".vp").classList.add("drag");seek(e)}});
+document.addEventListener("pointermove",e=>{if(sk)seek(e)});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>{if(sk){sk.closest(".vp").classList.remove("drag");sk=null}}));
+document.addEventListener("change",async e=>{
+  const f=e.target.files?.[0];if(!f)return;const id=e.target.id;e.target.value="";
+  try{
+    if(id==="pfile"){S.pf=f;$("#pname").textContent=f.name;return}
+    const r=await upload(f);
+    if(id==="file")await send({url:r.url,type:r.type,mime:r.mime,format:r.format||""});
+    if(id==="afile")await update(ref(db,"users/"+S.me.uid),{photo:r.url});
+    if(id==="bgf"){
+      if(r.type!=="image")return toast("Pick an image");
+      const url=r.url.includes("/image/upload/")?r.url.replace("/image/upload/","/image/upload/w_1400,q_auto/"):r.url,im=new Image();
+      im.onload=()=>{if(!S.bgd)return;  /* start zoomed so the picture covers the whole chat */
+        S.bgd={...S.bgd,mode:"img",img:url,x:50,y:50,z:Math.round(Math.max(100,100*(im.naturalWidth/im.naturalHeight)/(S.ar||.6))),dim:S.bgd.dim||0};bgRender()};
+      im.onerror=()=>toast("Could not load the image");im.src=url;
+    }
+    if(id==="bpngf"){const g=S.bg;putG(g,{...getG(g),img:r.url,ix:50,iy:50,is:40,ir:0});keep(draw)}
+  }catch(x){toast(x.message)}
+});
+</script>
+</body>
+</html>
